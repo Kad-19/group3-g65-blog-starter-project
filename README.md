@@ -80,6 +80,7 @@ group3-g65-blog-starter-project/
 ├── go.mod                              # Go module definition
 ├── go.sum                              # Go module checksums
 ├── render.yaml                         # Render deployment configuration
+├── .env                                # Secure url
 └── README.md                           # Project documentation
 ```
 
