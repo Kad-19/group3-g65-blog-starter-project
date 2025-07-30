@@ -31,6 +31,7 @@ group3-g65-blog-starter-project/
 │   │   └── recovery_middleware.go      # Error recovery middleware
 │   ├── database/
 │   │   ├── database.go                 # Database connection and setup
+│   │   ├── indexes.go                  # New (index management)
 │   │   └── seed/                       # Optional: Seed data scripts
 │   ├── auth/
 │   │   ├── jwt.go                      # JWT utilities and token struct
@@ -46,6 +47,8 @@ group3-g65-blog-starter-project/
 │   ├── user_repository.go              # User repository implementation
 │   ├── blog_repository.go              # Blog repository implementation
 │   └── interaction_repository.go       # Like/dislike tracking repository
+│   ├── token_repository.go             # New (for refresh_tokens collection)
+│   └── password_reset_repository.go    # New
 ├── usecase/
 │   ├── auth_usecase.go                 # Authentication business logic
 │   ├── user_usecase.go                 # User management business logic
