@@ -1,4 +1,4 @@
-package config
+package database
 
 import (
 	"context"
@@ -12,11 +12,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var MongoClient *mongo.Client
 
-func InitMongoDB() {
+func InitMongoDB() *mongo.Client{
 	// Load .env file
-	err := godotenv.Load()
+	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
@@ -41,5 +40,6 @@ func InitMongoDB() {
 	}
 
 	fmt.Println("Connected to MongoDB!")
-	MongoClient = client
+
+	return client
 }
