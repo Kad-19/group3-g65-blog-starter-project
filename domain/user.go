@@ -2,6 +2,7 @@ package domain
 
 import (
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -18,7 +19,7 @@ type User struct {
 	Username     string             `bson:"username" json:"username" validate:"required,min=3,max=50"`
 	Email        string             `bson:"email" json:"email" validate:"required,email"`
 	PasswordHash string             `bson:"password_hash" json:"-"`
-	Role         Role             	`bson:"role" json:"role"`
+	Role         Role               `bson:"role" json:"role"`
 	Activated    bool               `bson:"activated" json:"activated"`
 	Profile      UserProfile        `bson:"profile" json:"profile"`
 	CreatedAt    time.Time          `bson:"created_at" json:"created_at"`
