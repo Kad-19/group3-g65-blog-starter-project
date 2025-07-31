@@ -2,7 +2,6 @@ package route
 
 import (
 	"g3-g65-bsp/delivery/controller"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,8 +17,7 @@ func BlogRouter(r *gin.Engine, blogController *controller.BlogController) {
 }
 
 // NewRouter initializes the Gin engine and registers all routes
-func NewRouter(blogController *controller.BlogController) *gin.Engine {
-    r := gin.Default()
-    BlogRouter(r, blogController)
-    return r
+func NewRouter() *gin.Engine {
+	r := gin.Default()
+	return r
 }

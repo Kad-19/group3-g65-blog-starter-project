@@ -19,7 +19,8 @@ func main() {
     blogController := controller.NewBlogController(blogUsecase)
 
     // Initialize router
-    r := route.NewRouter(blogController)
+    r := route.NewRouter()
+	route.BlogRouter(r, blogController)
 
 
    // Start the server on port 8080
