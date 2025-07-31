@@ -2,6 +2,7 @@ package domain
 
 import (
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -17,8 +18,8 @@ type User struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Username     string             `bson:"username" json:"username" validate:"required,min=3,max=50"`
 	Email        string             `bson:"email" json:"email" validate:"required,email"`
-	PasswordHash string             `bson:"password_hash" json:"-"`
-	Role         Role             	`bson:"role" json:"role"`
+	Password 	 string             `bson:"password" json:"-"`
+	Role         string             `bson:"role" json:"role"`
 	Activated    bool               `bson:"activated" json:"activated"`
 	Profile      UserProfile        `bson:"profile" json:"profile"`
 	CreatedAt    time.Time          `bson:"created_at" json:"created_at"`
@@ -35,6 +36,12 @@ type UserProfile struct {
 // UserCreateRequest represents registration payload (DTO)
 type UserCreateRequest struct {
 	Username string `json:"username" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
+}
+
+// UserLoginRequest represents login payload (DTO)
+type UserLoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
