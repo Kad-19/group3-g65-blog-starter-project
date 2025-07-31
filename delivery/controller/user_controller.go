@@ -2,14 +2,13 @@ package controller
 
 import (
 	"g3-g65-bsp/domain"
-	"g3-g65-bsp/usecase"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserController struct {
-	userOperations *usecase.UserUseCase
+	userOperations domain.UserOperations
 }
 
 type emailRequest struct {
@@ -21,7 +20,7 @@ type profileUpdateRequest struct {
 	Profile domain.UserProfile `json:"profile" binding:"required"`
 }
 
-func NewUserController(uuc *usecase.UserUseCase) *UserController {
+func NewUserController(uuc domain.UserOperations) *UserController {
 	return &UserController{
 		userOperations: uuc,
 	}
@@ -40,7 +39,7 @@ func (uc *UserController) HandlePromote(c *gin.Context) {
 		c.IndentedJSON(http.StatusNotFound, err)
 		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user promoted successfully"})
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "user promoted successfully"})
 }
 
 func (uc *UserController) HandleDemote(c *gin.Context) {
@@ -56,7 +55,7 @@ func (uc *UserController) HandleDemote(c *gin.Context) {
 		c.IndentedJSON(http.StatusNotFound, err)
 		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user demoted successfully"})
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "user demoted successfully"})
 }
 
 func (uc *UserController) HandleUpdateUser(c *gin.Context) {
