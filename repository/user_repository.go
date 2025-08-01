@@ -2,14 +2,16 @@ package repository
 
 import (
 	"context"
-// <<<<<<< temesgen_user_manag
-  "fmt"
+	"fmt"
+
+	// <<<<<<< temesgen_user_manag
 	"errors"
 	"g3-g65-bsp/domain"
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"time"
 )
 
 type UserRepository struct {
@@ -45,6 +47,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*
 	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	return &user, err
 }
+
 // // =======
 // 	"fmt"
 // 	"g3-g65-bsp/domain"
@@ -75,41 +78,42 @@ func (r *UserRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*
 // 	return user, nil
 // }
 
-// func (mr *MongoRepo) UpdateUser(ctx context.Context, up domain.UserProfile, Email string) error {
-// 	filter := bson.M{"email": Email}
-// 	update := bson.M{
-// 		"$set": bson.M{
-// 			"bio":                 up.Bio,
-// 			"profile_picture_url": up.ProfilePictureURL,
-// 			"contact_information": up.ContactInfo,
-// 		},
-// 	}
+func (mr *UserRepository) UpdateUser(ctx context.Context, up domain.UserProfile, Email string) error {
+	filter := bson.M{"email": Email}
+	update := bson.M{
+		"$set": bson.M{
+			"bio":                 up.Bio,
+			"profile_picture_url": up.ProfilePictureURL,
+			"contact_information": up.ContactInfo,
+		},
+	}
 
-// 	if res, err := mr.collection.UpdateOne(ctx, filter, update); err != nil {
-// 		return err
-// 	} else {
-// 		if res.MatchedCount == 0 {
-// 			return fmt.Errorf("no user found")
-// 		}
-// 		return nil
-// 	}
-// }
+	if res, err := mr.collection.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	} else {
+		if res.MatchedCount == 0 {
+			return fmt.Errorf("no user found")
+		}
+		return nil
+	}
+}
 
-// func (mr *MongoRepo) UpdateUserRole(ctx context.Context, role string, Email string) error {
-// 	filter := bson.M{"email": Email}
-// 	update := bson.M{
-// 		"$set": bson.M{
-// 			"role": role,
-// 		},
-// 	}
+func (mr *UserRepository) UpdateUserRole(ctx context.Context, role string, Email string) error {
+	filter := bson.M{"email": Email}
+	update := bson.M{
+		"$set": bson.M{
+			"role": role,
+		},
+	}
 
-// 	if res, err := mr.collection.UpdateOne(ctx, filter, update); err != nil {
-// 		return err
-// 	} else {
-// 		if res.MatchedCount == 0 {
-// 			return fmt.Errorf("no user found")
-// 		}
-// 		return nil
-// 	}
-// }
+	if res, err := mr.collection.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	} else {
+		if res.MatchedCount == 0 {
+			return fmt.Errorf("no user found")
+		}
+		return nil
+	}
+}
+
 // >>>>>>> main
