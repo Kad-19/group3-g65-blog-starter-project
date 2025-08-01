@@ -7,10 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UserController struct {
-	userOperations domain.UserOperations
-}
-
 type emailRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
@@ -18,6 +14,10 @@ type emailRequest struct {
 type profileUpdateRequest struct {
 	Email   string             `json:"email" binding:"required,email"`
 	Profile domain.UserProfile `json:"profile" binding:"required"`
+}
+
+type UserController struct {
+	userOperations domain.UserOperations
 }
 
 func NewUserController(uuc domain.UserOperations) *UserController {
