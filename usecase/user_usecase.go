@@ -2,21 +2,27 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"g3-g65-bsp/domain"
+	"io"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type UserUseCase struct {
-	userRepo domain.UserRepositorys
+type UserOperations struct {
+	userRepo      domain.UserRepositorys
+	imageUploader domain.ImageUploader
 }
 
-func NewUserUseCase(ur domain.UserRepositorys) *UserUseCase {
-	return &UserUseCase{
-		userRepo: ur,
+func NewUserUseCase(ur domain.UserRepositorys, iu domain.ImageUploader) *UserOperations {
+	return &UserOperations{
+		userRepo:      ur,
+		imageUploader: iu,
 	}
 }
 
-func (upd *UserUseCase) Promote(ctx context.Context, Email string) error {
+func (upd *UserOperations) Promote(ctx context.Context, Email string) error {
 	user, err := upd.userRepo.FindByEmail(ctx, Email)
 	if err != nil {
 		return err
@@ -31,7 +37,7 @@ func (upd *UserUseCase) Promote(ctx context.Context, Email string) error {
 	return nil
 }
 
-func (upd *UserUseCase) Demote(ctx context.Context, Email string) error {
+func (upd *UserOperations) Demote(ctx context.Context, Email string) error {
 	user, err := upd.userRepo.FindByEmail(ctx, Email)
 	if err != nil {
 		return err
@@ -46,11 +52,18 @@ func (upd *UserUseCase) Demote(ctx context.Context, Email string) error {
 	return nil
 }
 
-func (upd *UserUseCase) ProfileUpdate(ctx context.Context, up *domain.UserProfile, Email string) error {
-	if up.ProfilePictureURL == "" && up.Bio == "" && up.ContactInfo == "" {
-		return fmt.Errorf("all fields are required")
+func (upd *UserOperations) ProfileUpdate(ctx context.Context, userid primitive.ObjectID, bio string, contactinfo string, file io.Reader) error {
+	user, err := upd.userRepo.FindByID(ctx, userid)
+	if err != nil {
+		return err
 	}
-	if err := upd.userRepo.UpdateUser(ctx, *up, Email); err != nil {
+
+	imageURL, err := upd.imageUploader.UploadImage(ctx, file, "uploads/profile")
+	if err != nil {
+		return errors.New("failed to upload image")
+	}
+
+	if err := upd.userRepo.UpdateUser(ctx, bio, contactinfo, imageURL, user.Email); err != nil {
 		return err
 	}
 	return nil

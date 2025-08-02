@@ -3,29 +3,39 @@ package usecase
 import (
 	"context"
 	"errors"
-	"time"
+	"fmt"
 	"g3-g65-bsp/domain"
 	"g3-g65-bsp/infrastructure/auth"
+	"g3-g65-bsp/infrastructure/email"
 	"g3-g65-bsp/repository"
+	"g3-g65-bsp/utils"
+	"time"
 )
 
 type AuthUsecase struct {
-	userRepo  repository.UserRepository
-	tokenRepo repository.TokenRepository
-	hasher    *auth.PasswordHasher
-	jwt       *auth.JWT
+	userRepo       repository.UserRepository
+	tokenRepo      repository.TokenRepository
+	hasher         *auth.PasswordHasher
+	jwt            *auth.JWT
+	activationRepo domain.ActivationTokenRepository
+	emailService   *email.EmailService
+	passRepo       domain.PasswordResetRepository
 }
 
 func NewAuthUsecase(
 	ur repository.UserRepository,
 	tr repository.TokenRepository,
 	jwt *auth.JWT,
+	ar domain.ActivationTokenRepository,
+	es *email.EmailService,
 ) *AuthUsecase {
 	return &AuthUsecase{
-		userRepo:  ur,
-		tokenRepo: tr,
-		hasher:    &auth.PasswordHasher{},
-		jwt:       jwt,
+		userRepo:       ur,
+		tokenRepo:      tr,
+		hasher:         &auth.PasswordHasher{},
+		jwt:            jwt,
+		activationRepo: ar,
+		emailService:   es,
 	}
 }
 
@@ -40,18 +50,37 @@ func (uc *AuthUsecase) Register(ctx context.Context, req domain.UserCreateReques
 	}
 
 	user := &domain.User{
-		Username:     req.Username,
-		Email:        req.Email,
-		Password:     hashedPassword,
-		Role:         "User",
-		Activated:    false,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		Username:  req.Username,
+		Email:     req.Email,
+		Password:  hashedPassword,
+		Role:      "User",
+		Activated: false,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	if err := uc.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
+
+	activation_token, err := utils.CreateActivationToken(user.Email, 24*time.Hour)
+	if err != nil {
+		return &domain.UserResponse{}, err
+	}
+
+	if err := uc.activationRepo.Create(ctx, activation_token); err != nil {
+		return &domain.UserResponse{}, err
+	}
+
+	activationLink := ""
+	// activationLink := "" + activation_token
+	go func() { // Send email asynchronously
+		err := uc.emailService.SendActivationEmail(user.Email, activationLink)
+		if err != nil {
+			// Log the error, but don't fail the registration process
+			fmt.Printf("Failed to send activation email: %v\n", err)
+		}
+	}()
 
 	return &domain.UserResponse{
 		ID:        user.ID.Hex(),
@@ -87,4 +116,86 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (strin
 	}
 
 	return accessToken, refreshToken, int(uc.jwt.AccessExpiry.Seconds()), nil
+}
+
+func (uc *AuthUsecase) ActivateUser(ctx context.Context, token string) error {
+	activate_token, err := uc.activationRepo.GetByToken(ctx, token)
+	if err != nil {
+		return errors.New("invalid or expired token")
+	}
+
+	if time.Now().After(activate_token.ExpiresAt) {
+		uc.activationRepo.Delete(ctx, token) // Clean up expired token
+		return errors.New("token has expired")
+	}
+
+	user, err := uc.userRepo.FindByEmail(ctx, activate_token.Email)
+	if err != nil {
+		return errors.New("invalid token")
+	}
+
+	if user.Activated {
+		return errors.New("account is already active")
+	}
+
+	err = uc.userRepo.UpdateActiveStatus(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+
+	uc.activationRepo.Delete(ctx, token)
+	return nil
+}
+
+func (uc *AuthUsecase) InitiateResetPassword(ctx context.Context, email string) error {
+	user, err := uc.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return errors.New("if an account exists for this email, a password reset link will be sent")
+	}
+
+	password_token, _ := utils.CreateResetToken(email, 1*time.Hour)
+	if err := uc.passRepo.Create(ctx, password_token); err != nil {
+		return err
+	}
+
+	// resetLink := "http://your-frontend-domain.com/reset-password?token=" + tokenValue
+	resetLink := ""
+	go func() {
+		err := uc.emailService.SendPasswordResetEmail(user.Email, resetLink)
+		if err != nil {
+			// Log the error.
+			// fmt.Printf("Failed to send password reset email: %v\n", err)
+		}
+	}()
+
+	return errors.New("if an account exists for this email, a password reset link will be sent")
+}
+
+func (uc *AuthUsecase) ResetPassword(c context.Context, token, newPassword string) error {
+	resetToken, err := uc.passRepo.GetByToken(c, token)
+	if err != nil {
+		return errors.New("invalid or expired token")
+	}
+
+	if time.Now().After(resetToken.ExpiresAt) {
+		uc.passRepo.Delete(c, token) // Clean up expired token.
+		return errors.New("token has expired")
+	}
+
+	user, err := uc.userRepo.FindByEmail(c, resetToken.Email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	hashedPassword, err := uc.hasher.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	if err := uc.userRepo.UpdateUserPassword(c, user.Email, hashedPassword); err != nil {
+		return err
+	}
+
+	uc.passRepo.Delete(c, token)
+	return nil
 }

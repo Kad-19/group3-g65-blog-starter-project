@@ -1,6 +1,11 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"io"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type BlogUsecase interface {
 	CreateBlog(ctx context.Context, blog *Blog) (string, error)
@@ -10,8 +15,16 @@ type BlogUsecase interface {
 	ListBlogs(ctx context.Context, filter map[string]interface{}) ([]*Blog, error)
 }
 
-type UserOperations interface {
+type UserUseCase interface {
 	Promote(ctx context.Context, email string) error
 	Demote(ctx context.Context, email string) error
-	ProfileUpdate(ctx context.Context, up *UserProfile, email string) error
+	ProfileUpdate(ctx context.Context, userid primitive.ObjectID, bio string, contactinfo string, file io.Reader) error
+}
+
+type AuthUsecase interface {
+	ActivateUser(ctx context.Context, token string) error
+	Register(ctx context.Context, req UserCreateRequest) (*UserResponse, error)
+	Login(ctx context.Context, email, password string) (string, string, int, error)
+	InitiateResetPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, token, newPassword string) error
 }

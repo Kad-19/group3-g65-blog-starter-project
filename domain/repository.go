@@ -18,6 +18,20 @@ type UserRepositorys interface {
 	Create(ctx context.Context, user *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*User, error)
-	UpdateUser(ctx context.Context, up UserProfile, Email string) error
+	UpdateUser(ctx context.Context, bio string, contactInfo string, imagePath string, Email string) error
 	UpdateUserRole(ctx context.Context, role string, Email string) error
+	UpdateActiveStatus(ctx context.Context, email string) error
+	UpdateUserPassword(ctx context.Context, email string, newPasswordHash string) error
+}
+
+type ActivationTokenRepository interface {
+	Create(ctx context.Context, token *ActivationToken) error
+	GetByToken(ctx context.Context, token string) (*ActivationToken, error)
+	Delete(ctx context.Context, token string) error
+}
+
+type PasswordResetRepository interface {
+	Create(ctx context.Context, token *PasswordResetToken) error
+	GetByToken(ctx context.Context, token string) (*PasswordResetToken, error)
+	Delete(ctx context.Context, token string) error
 }
