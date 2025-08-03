@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"g3-g65-bsp/domain"
 	"net/http"
 
@@ -22,36 +23,25 @@ func NewUserController(uuc domain.UserUseCase) *UserController {
 	}
 }
 
-func (uc *UserController) HandlePromote(c *gin.Context) {
+func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string) error, successMessage string) {
 	var req emailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusNotFound, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	ctx := c.Request.Context()
-	err := uc.userOperations.Promote(ctx, req.Email)
-	if err != nil {
-		c.IndentedJSON(http.StatusNotFound, err)
+	if err := roleChange(ctx, req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "user promoted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": successMessage})
+}
+func (uc *UserController) HandlePromote(c *gin.Context) {
+	uc.ChangeUserRole(c, uc.userOperations.Demote, "user promoted successfully")
 }
 
 func (uc *UserController) HandleDemote(c *gin.Context) {
-	var req emailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusNotFound, err)
-		return
-	}
-
-	ctx := c.Request.Context()
-	err := uc.userOperations.Demote(ctx, req.Email)
-	if err != nil {
-		c.IndentedJSON(http.StatusNotFound, err)
-		return
-	}
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "user demoted successfully"})
+	uc.ChangeUserRole(c, uc.userOperations.Demote, "user demoted successfully")
 }
 
 func (uc *UserController) HandleUpdateUser(c *gin.Context) {
