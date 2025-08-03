@@ -32,26 +32,3 @@ type UserProfile struct {
 	ProfilePictureURL string `bson:"profile_picture_url,omitempty" json:"profile_picture_url"`
 	ContactInfo       string `bson:"contact_information,omitempty" json:"contact_information" validate:"max=100"`
 }
-
-// UserCreateRequest represents registration payload (DTO)
-type UserCreateRequest struct {
-	Username string `json:"username" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
-}
-
-// UserLoginRequest represents login payload (DTO)
-type UserLoginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
-}
-
-// UserResponse represents safe user data for API responses (DTO)
-type UserResponse struct {
-	ID        string      `json:"id"`
-	Username  string      `json:"username"`
-	Email     string      `json:"email"`
-	Role      string      `json:"role"`
-	Profile   UserProfile `json:"profile"`
-	CreatedAt time.Time   `json:"created_at"`
-}

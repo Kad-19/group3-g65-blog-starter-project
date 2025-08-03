@@ -20,9 +20,9 @@ type PasswordReset struct {
 	collection *mongo.Collection
 }
 
-func NewPasswordReset(mc *mongo.Collection) *PasswordReset {
+func NewPasswordReset(db *mongo.Database) *PasswordReset {
 	return &PasswordReset{
-		collection: mc,
+		collection: db.Collection("password_reset"),
 	}
 }
 

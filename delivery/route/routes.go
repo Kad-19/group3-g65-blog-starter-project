@@ -2,6 +2,9 @@ package route
 
 import (
 	"g3-g65-bsp/delivery/controller"
+	"g3-g65-bsp/infrastructure/auth"
+	"g3-g65-bsp/infrastructure/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,6 +16,20 @@ func BlogRouter(r *gin.Engine, blogController *controller.BlogController) {
         blogGroup.GET(":id", blogController.GetBlogByID)
         blogGroup.PUT(":id", blogController.UpdateBlog)
         blogGroup.DELETE(":id", blogController.DeleteBlog)
+    }
+}
+
+func AuthRouter(r *gin.Engine, authController *controller.AuthController, jwt *auth.JWT) {
+    authGroup := r.Group("/auth")
+    {
+        authGroup.POST("/register", authController.Register)
+        authGroup.POST("/login", authController.Login)
+        authGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
+        {
+            authGroup.POST("/refresh", authController.Refresh)
+            authGroup.POST("/logout", authController.Logout)      // Single device
+            authGroup.POST("/logout-all", authController.LogoutAll) // All devices
+        }
     }
 }
 
