@@ -33,9 +33,8 @@ func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context
 		return
 	}
 	ctx := c.Request.Context()
-	err := uc.userUsecase.Promote(ctx, req.Email)
-	if err != nil {
-		c.IndentedJSON(http.StatusNotFound, err)
+	if err := roleChange(ctx, req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": successMessage})
@@ -49,19 +48,7 @@ func (uc *UserController) HandlePromote(c *gin.Context) {
 }
 
 func (uc *UserController) HandleDemote(c *gin.Context) {
-	var req emailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusNotFound, err)
-		return
-	}
-
-	ctx := c.Request.Context()
-	err := uc.userUsecase.Demote(ctx, req.Email)
-	if err != nil {
-		c.IndentedJSON(http.StatusNotFound, err)
-		return
-	}
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "user demoted successfully"})
+	uc.ChangeUserRole(c, uc.userOperations.Demote, "user demoted successfully")
 }
 
 func (uc *UserController) HandleUpdateUser(c *gin.Context) {
