@@ -7,10 +7,10 @@ import (
 )
 
 type UserUseCase struct {
-	userRepo domain.UserRepositorys
+	userRepo domain.UserRepository
 }
 
-func NewUserUseCase(ur domain.UserRepositorys) *UserUseCase {
+func NewUserUseCase(ur domain.UserRepository) *UserUseCase {
 	return &UserUseCase{
 		userRepo: ur,
 	}
@@ -22,7 +22,7 @@ func (upd *UserUseCase) Promote(ctx context.Context, Email string) error {
 		return err
 	}
 	if user.Role == string(domain.RoleAdmin) {
-		return fmt.Errorf("The user is already an admin")
+		return fmt.Errorf("the user is already an admin")
 	}
 
 	if ok := upd.userRepo.UpdateUserRole(ctx, string(domain.RoleAdmin), Email); ok != nil {
@@ -37,7 +37,7 @@ func (upd *UserUseCase) Demote(ctx context.Context, Email string) error {
 		return err
 	}
 	if user.Role == string(domain.RoleUser) {
-		return fmt.Errorf("The user is already a user")
+		return fmt.Errorf("the user is already a user")
 	}
 	if ok := upd.userRepo.UpdateUserRole(ctx, string(domain.RoleUser), Email); ok != nil {
 		return ok
