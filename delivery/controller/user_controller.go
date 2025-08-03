@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"context"
 	"g3-g65-bsp/domain"
 	"net/http"
 
@@ -25,14 +24,14 @@ func NewUserController(uuc domain.UserUsecase) *UserController {
 }
 
 func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string) error, successMessage string) {
-func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string) error, successMessage string) {
 	var req emailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	ctx := c.Request.Context()
+	if err := roleChange(ctx, req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	if err := roleChange(ctx, req.Email); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -41,9 +40,14 @@ func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context
 }
 func (uc *UserController) HandlePromote(c *gin.Context) {
 	uc.ChangeUserRole(c, uc.userOperations.Demote, "user promoted successfully")
+	c.JSON(http.StatusOK, gin.H{"message": successMessage})
+}
+func (uc *UserController) HandlePromote(c *gin.Context) {
+	uc.ChangeUserRole(c, uc.userOperations.Demote, "user promoted successfully")
 }
 
 func (uc *UserController) HandleDemote(c *gin.Context) {
+	uc.ChangeUserRole(c, uc.userOperations.Demote, "user demoted successfully")
 	uc.ChangeUserRole(c, uc.userOperations.Demote, "user demoted successfully")
 }
 
