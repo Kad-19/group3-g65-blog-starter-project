@@ -8,6 +8,7 @@ type BlogRepository interface {
 	UpdateBlog(ctx context.Context, blog *Blog) error
 	DeleteBlog(ctx context.Context, id string) error
 	ListBlogs(ctx context.Context, filter map[string]interface{}) ([]*Blog, error)
+	IncrementBlogViewCount(ctx context.Context, id string, blog *Blog) error
 }
 
 type UserRepository interface {

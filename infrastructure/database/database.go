@@ -15,7 +15,7 @@ import (
 
 func InitMongoDB() *mongo.Client{
 	// Load .env file
-	err := godotenv.Load(".env")
+	err := godotenv.Load("../../.env")
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
@@ -26,7 +26,7 @@ func InitMongoDB() *mongo.Client{
 	} 
 
 	clientOpts := options.Client().ApplyURI(uri)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
 	client, err := mongo.Connect(ctx, clientOpts)

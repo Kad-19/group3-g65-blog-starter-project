@@ -1,8 +1,8 @@
 package route
 
 import (
-	"g3-g65-bsp/delivery/controller"
-	"github.com/gin-gonic/gin"
+    "g3-g65-bsp/delivery/controller"
+    "github.com/gin-gonic/gin"
 )
 
 func BlogRouter(r *gin.Engine, blogController *controller.BlogController) {
@@ -18,6 +18,6 @@ func BlogRouter(r *gin.Engine, blogController *controller.BlogController) {
 
 // NewRouter initializes the Gin engine and registers all routes
 func NewRouter() *gin.Engine {
-	r := gin.Default()
-	return r
+    r := gin.Default()
+    return r
 }

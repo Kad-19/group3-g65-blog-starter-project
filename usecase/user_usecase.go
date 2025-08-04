@@ -21,7 +21,7 @@ func (upd *UserUseCase) Promote(ctx context.Context, Email string) error {
 	if err != nil {
 		return err
 	}
-	if user.Role == domain.RoleAdmin {
+	if user.Role == string(domain.RoleAdmin) {
 		return fmt.Errorf("The user is already an admin")
 	}
 
@@ -36,7 +36,7 @@ func (upd *UserUseCase) Demote(ctx context.Context, Email string) error {
 	if err != nil {
 		return err
 	}
-	if user.Role == domain.RoleUser {
+	if user.Role == string(domain.RoleUser) {
 		return fmt.Errorf("The user is already a user")
 	}
 	if ok := upd.userRepo.UpdateUserRole(ctx, string(domain.RoleUser), Email); ok != nil {
