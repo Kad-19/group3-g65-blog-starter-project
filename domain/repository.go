@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -14,7 +15,7 @@ type BlogRepository interface {
 	ListBlogs(ctx context.Context, filter map[string]interface{}) ([]*Blog, error)
 }
 
-type UserRepositorys interface {
+type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*User, error)
@@ -34,4 +35,10 @@ type PasswordResetRepository interface {
 	Create(ctx context.Context, token *PasswordResetToken) error
 	GetByToken(ctx context.Context, token string) (*PasswordResetToken, error)
 	Delete(ctx context.Context, token string) error
+}
+
+type TokenRepository interface {
+	StoreRefreshToken(ctx context.Context, userID primitive.ObjectID, tokenHash string, expiresAt time.Time) error
+	FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (primitive.ObjectID, error)
+	DeleteAllForUser(ctx context.Context, userID primitive.ObjectID) error
 }

@@ -1,27 +1,32 @@
 package middleware
 
 import (
-	"net/http"
 	"g3-g65-bsp/infrastructure/auth"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 )
-
-func AuthMiddleware(jwt *auth.JWT) gin.HandlerFunc {
+func AuthMiddleware(jwtHandler *auth.JWT) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.AbortWithStatusJSON(401, gin.H{"error": "missing token"})
 			return
 		}
 
-		claims, err := jwt.ValidateAccessToken(tokenString)
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+
+		claims, err := jwtHandler.ValidateAccessToken(token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.AbortWithStatusJSON(401, gin.H{"error": "invalid token"})
 			return
 		}
 
+		// Set claims in context
 		c.Set("user_id", claims.UserID)
-		c.Set("user_role", claims.Role)
+		c.Set("role", claims.Role)
+
 		c.Next()
 	}
 }
+
