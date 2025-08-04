@@ -51,6 +51,6 @@ func UserRouter(r *gin.Engine, userController *controller.UserController, jwt *a
 
 // NewRouter initializes the Gin engine and registers all routes
 func NewRouter() *gin.Engine {
-	r := gin.Default()
-	return r
+    r := gin.Default()
+    return r
 }

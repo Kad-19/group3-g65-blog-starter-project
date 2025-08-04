@@ -6,7 +6,8 @@ import (
 
 type Blog struct {
     ID        string   
-    AuthorID  string   
+    AuthorID  string
+    AuthorUsername string   
     Title     string   
     Content   string   
     Tags      []string 
