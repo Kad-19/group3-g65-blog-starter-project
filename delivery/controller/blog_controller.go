@@ -1,4 +1,3 @@
-
 package controller
 
 import (
@@ -181,21 +180,15 @@ func (c *BlogController) DeleteBlog(ctx *gin.Context) {
 }
 
 func (c *BlogController) ListBlogs(ctx *gin.Context) {
-    filter := make(map[string]interface{})
+    filter := make(map[string]any)
 
     // Parse tags (comma-separated)
     if tagsStr := ctx.Query("tags"); tagsStr != "" {
-        tags := make([]string, 0)
+        tags := []string{}
         for _, t := range ctx.QueryArray("tags") {
-            if t != "" {
-                tags = append(tags, t)
-            }
-        }
-        // If tags were not provided as repeated ?tags=, try comma-separated
-        if len(tags) == 0 {
-            for _, t := range splitAndTrim(tagsStr, ",") {
-                if t != "" {
-                    tags = append(tags, t)
+            for _, tag := range splitAndTrim(t, ",") {
+                if tag != "" {
+                    tags = append(tags, tag)
                 }
             }
         }
@@ -224,7 +217,20 @@ func (c *BlogController) ListBlogs(ctx *gin.Context) {
         filter["search"] = search
     }
 
-    blogs, err := c.blogUsecase.ListBlogs(ctx, filter)
+    // Parse pagination
+    page, limit := 1, 10
+    if p := ctx.Query("page"); p != "" {
+        if v, err := parseInt(p); err == nil && v > 0 {
+            page = v
+        }
+    }
+    if l := ctx.Query("limit"); l != "" {
+        if v, err := parseInt(l); err == nil && v > 0 {
+            limit = v
+        }
+    }
+
+    blogs, pagination, err := c.blogUsecase.ListBlogs(ctx, filter, page, limit)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -233,7 +239,10 @@ func (c *BlogController) ListBlogs(ctx *gin.Context) {
     for i, b := range blogs {
         dtos[i] = ConvertFromDomain(b)
     }
-    ctx.JSON(http.StatusOK, dtos)
+    ctx.JSON(http.StatusOK, gin.H{
+        "data": dtos,
+        "pagination": pagination,
+    })
 }
 
 

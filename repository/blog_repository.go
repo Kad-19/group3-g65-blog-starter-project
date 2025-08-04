@@ -9,6 +9,7 @@ import (
     "g3-g65-bsp/domain"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -75,7 +76,7 @@ func (r *mongoBlogRepository) DeleteBlog(ctx context.Context, id string) error {
     return nil
 }
 
-func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]any) ([]*domain.Blog, error) {
+func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*domain.Blog, *domain.Pagination, error) {
     var andFilters []bson.M
 
     if search, ok := filter["search"].(string); ok && search != "" {
@@ -89,7 +90,7 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
     // Add other specific filters to the $and array
 
     if tags, ok := filter["tags"].([]string); ok && len(tags) > 0 {
-        andFilters = append(andFilters, bson.M{"tags": bson.M{"$in": tags}})
+        andFilters = append(andFilters, bson.M{"tags": bson.M{"$all": tags}})
     }
 
     if from, ok := filter["created_at_from"].(string); ok && from != "" {
@@ -115,23 +116,43 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
         bsonFilter["$and"] = andFilters
     }
 
-    cur, err := r.collection.Find(ctx, bsonFilter)
+    // Get total count for pagination
+    total, err := r.collection.CountDocuments(ctx, bsonFilter)
     if err != nil {
-        return nil, err
+        return nil, nil, err
+    }
+
+    opts := options.Find()
+    if limit > 0 {
+        opts.SetLimit(int64(limit))
+    }
+    if page > 1 && limit > 0 {
+        opts.SetSkip(int64((page - 1) * limit))
+    }
+
+    cur, err := r.collection.Find(ctx, bsonFilter, opts)
+    if err != nil {
+        return nil, nil, err
     }
     defer cur.Close(ctx)
     var blogs []*domain.Blog
     for cur.Next(ctx) {
         var blog domain.Blog
         if err := cur.Decode(&blog); err != nil {
-            return nil, err
+            return nil, nil, err
         }
         blogs = append(blogs, &blog)
     }
     if err := cur.Err(); err != nil {
-        return nil, err
+        return nil, nil, err
     }
-    return blogs, nil
+
+    pagination := &domain.Pagination{
+        Total: int(total),
+        Page:  page,
+        Limit: limit,
+    }
+    return blogs, pagination, nil
 }
 // IncrementBlogViewCount atomically increments the view count of a blog post
 func (r *mongoBlogRepository) IncrementBlogViewCount(ctx context.Context, id string, blog *domain.Blog) error {
