@@ -10,6 +10,7 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
+    "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -260,13 +261,20 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
     defer cur.Close(ctx)
     var blogs []*domain.Blog
     for cur.Next(ctx) {
-        var model BlogModel
-        if err := cur.Decode(&model); err != nil {
+        var blog domain.Blog
+        if err := cur.Decode(&blog); err != nil {
             return nil, nil, err
         }
         blogs = append(blogs, model.ToDomain())
     }
     if err := cur.Err(); err != nil {
+        return nil, nil, err
+    }
+
+    pagination := &domain.Pagination{
+        Total: int(total),
+        Page:  page,
+        Limit: limit,
         return nil, nil, err
     }
 
