@@ -44,4 +44,3 @@ func (u *blogUsecase) DeleteBlog(ctx context.Context, id string) error {
 func (u *blogUsecase) ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*domain.Blog, *domain.Pagination, error) {
     return u.repo.ListBlogs(ctx, filter, page, limit)
 }
-
