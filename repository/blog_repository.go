@@ -1,3 +1,5 @@
+
+
 package repository
 
 import (
@@ -73,8 +75,46 @@ func (r *mongoBlogRepository) DeleteBlog(ctx context.Context, id string) error {
     return nil
 }
 
-func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]interface{}) ([]*domain.Blog, error) {
-    bsonFilter := bson.M(filter)
+func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]any) ([]*domain.Blog, error) {
+    var andFilters []bson.M
+
+    if search, ok := filter["search"].(string); ok && search != "" {
+        orFilters := []bson.M{
+            {"title": bson.M{"$regex": search, "$options": "i"}},
+            {"authorusername": bson.M{"$regex": search, "$options": "i"}},
+        }
+        andFilters = append(andFilters, bson.M{"$or": orFilters})
+    }
+
+    // Add other specific filters to the $and array
+
+    if tags, ok := filter["tags"].([]string); ok && len(tags) > 0 {
+        andFilters = append(andFilters, bson.M{"tags": bson.M{"$in": tags}})
+    }
+
+    if from, ok := filter["created_at_from"].(string); ok && from != "" {
+        if fromTime, err := time.Parse(time.RFC3339, from); err == nil {
+            andFilters = append(andFilters, bson.M{"createdat": bson.M{"$gte": fromTime}})
+        }
+    }
+
+    if to, ok := filter["created_at_to"].(string); ok && to != "" {
+        if toTime, err := time.Parse(time.RFC3339, to); err == nil {
+            andFilters = append(andFilters, bson.M{"createdat": bson.M{"$lte": toTime}})
+        }
+    }
+    if minViews, ok := filter["min_views"].(int); ok && minViews > 0 {
+        andFilters = append(andFilters, bson.M{"metrics.viewcount": bson.M{"$gte": minViews}})
+    }
+
+    // ... add other filters similarly ...
+
+
+    bsonFilter := bson.M{}
+    if len(andFilters) > 0 {
+        bsonFilter["$and"] = andFilters
+    }
+
     cur, err := r.collection.Find(ctx, bsonFilter)
     if err != nil {
         return nil, err
@@ -93,3 +133,17 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]i
     }
     return blogs, nil
 }
+// IncrementBlogViewCount atomically increments the view count of a blog post
+func (r *mongoBlogRepository) IncrementBlogViewCount(ctx context.Context, id string, blog *domain.Blog) error {
+    filter := bson.M{"id": blog.ID}
+    update := bson.M{"$inc": bson.M{"metrics.viewcount": 1}}
+    result, err := r.collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        return err
+    }
+    if result.MatchedCount == 0 {
+        return ErrBlogNotFound
+    }
+    return nil
+}
+

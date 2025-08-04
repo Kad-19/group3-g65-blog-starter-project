@@ -1,17 +1,20 @@
+
 package controller
 
 import (
-	"g3-g65-bsp/domain"
-	"net/http"
-	"time"
+    "g3-g65-bsp/domain"
+    "net/http"
+    "time"
+    "fmt"
 
-	"github.com/gin-gonic/gin"
+    "github.com/gin-gonic/gin"
 )
 
 // BlogDTO is a data transfer object for Blog with JSON restrictions
 type BlogDTO struct {
     ID        string        `json:"id,omitempty"`
     AuthorID  string        `json:"author_id" binding:"required"`
+    AuthorUsername string `json:"author_username" binding:"required"`
     Title     string        `json:"title" binding:"required"`
     Content   string        `json:"content" binding:"required"`
     Tags      []string      `json:"tags"`
@@ -66,6 +69,7 @@ func (dto *BlogDTO) ConvertToDomain() *domain.Blog {
     return &domain.Blog{
         ID:        dto.ID,
         AuthorID:  dto.AuthorID,
+        AuthorUsername: dto.AuthorUsername,
         Title:     dto.Title,
         Content:   dto.Content,
         Tags:      dto.Tags,
@@ -100,6 +104,7 @@ func ConvertFromDomain(blog *domain.Blog) *BlogDTO {
     return &BlogDTO{
         ID:        blog.ID,
         AuthorID:  blog.AuthorID,
+        AuthorUsername: blog.AuthorUsername,
         Title:     blog.Title,
         Content:   blog.Content,
         Tags:      blog.Tags,
@@ -177,7 +182,48 @@ func (c *BlogController) DeleteBlog(ctx *gin.Context) {
 
 func (c *BlogController) ListBlogs(ctx *gin.Context) {
     filter := make(map[string]interface{})
-    // Add any filtering logic here if needed
+
+    // Parse tags (comma-separated)
+    if tagsStr := ctx.Query("tags"); tagsStr != "" {
+        tags := make([]string, 0)
+        for _, t := range ctx.QueryArray("tags") {
+            if t != "" {
+                tags = append(tags, t)
+            }
+        }
+        // If tags were not provided as repeated ?tags=, try comma-separated
+        if len(tags) == 0 {
+            for _, t := range splitAndTrim(tagsStr, ",") {
+                if t != "" {
+                    tags = append(tags, t)
+                }
+            }
+        }
+        if len(tags) > 0 {
+            filter["tags"] = tags
+        }
+    }
+
+    // Parse date range
+    if from := ctx.Query("created_at_from"); from != "" {
+        filter["created_at_from"] = from
+    }
+    if to := ctx.Query("created_at_to"); to != "" {
+        filter["created_at_to"] = to
+    }
+
+    // Parse min_views
+    if minViews := ctx.Query("min_views"); minViews != "" {
+        if mv, err := parseInt(minViews); err == nil {
+            filter["min_views"] = mv
+        }
+    }
+
+    // Parse search query
+    if search := ctx.Query("search"); search != "" {
+        filter["search"] = search
+    }
+
     blogs, err := c.blogUsecase.ListBlogs(ctx, filter)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -188,5 +234,52 @@ func (c *BlogController) ListBlogs(ctx *gin.Context) {
         dtos[i] = ConvertFromDomain(b)
     }
     ctx.JSON(http.StatusOK, dtos)
+}
+
+
+// splitAndTrim splits a string by sep and trims spaces
+func splitAndTrim(s, sep string) []string {
+    arr := make([]string, 0)
+    for _, part := range split(s, sep) {
+        trimmed := trim(part)
+        if trimmed != "" {
+            arr = append(arr, trimmed)
+        }
+    }
+    return arr
+}
+
+func split(s, sep string) []string {
+    var res []string
+    i := 0
+    for i < len(s) {
+        j := i
+        for j < len(s) && string(s[j]) != sep {
+            j++
+        }
+        res = append(res, s[i:j])
+        i = j + 1
+    }
+    return res
+}
+
+func trim(s string) string {
+    i, j := 0, len(s)-1
+    for i <= j && (s[i] == ' ' || s[i] == '\t' || s[i] == '\n') {
+        i++
+    }
+    for j >= i && (s[j] == ' ' || s[j] == '\t' || s[j] == '\n') {
+        j--
+    }
+    if i > j {
+        return ""
+    }
+    return s[i : j+1]
+}
+
+func parseInt(s string) (int, error) {
+    var n int
+    _, err := fmt.Sscanf(s, "%d", &n)
+    return n, err
 }
 

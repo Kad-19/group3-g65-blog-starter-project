@@ -35,6 +35,6 @@ func AuthRouter(r *gin.Engine, authController *controller.AuthController, jwt *a
 
 // NewRouter initializes the Gin engine and registers all routes
 func NewRouter() *gin.Engine {
-	r := gin.Default()
-	return r
+    r := gin.Default()
+    return r
 }
