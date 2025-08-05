@@ -205,7 +205,7 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
     if search, ok := filter["search"].(string); ok && search != "" {
         orFilters := []bson.M{
             {"title": bson.M{"$regex": search, "$options": "i"}},
-            {"authorusername": bson.M{"$regex": search, "$options": "i"}},
+            {"author_username": bson.M{"$regex": search, "$options": "i"}},
         }
         andFilters = append(andFilters, bson.M{"$or": orFilters})
     }
