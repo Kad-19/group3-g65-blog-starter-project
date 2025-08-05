@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"g3-g65-bsp/domain"
 	"g3-g65-bsp/infrastructure/auth"
-	"g3-g65-bsp/infrastructure/email"
 	"g3-g65-bsp/utils"
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

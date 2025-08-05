@@ -32,3 +32,8 @@ type AuthUsecase interface {
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 }
+
+type AIUseCase interface {
+	GenerateIntialSuggestion(ctx context.Context, title string) (string, error)
+	GenerateBasedOnTags(ctx context.Context, content string, tags []string) (string, error)
+}
