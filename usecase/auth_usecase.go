@@ -91,7 +91,7 @@ func (uc *AuthUsecase) SendActivationToken(ctx context.Context, email string) er
 			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
-
+	
 	return nil
 }
 
