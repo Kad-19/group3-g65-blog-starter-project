@@ -38,7 +38,7 @@ func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context
 	c.JSON(http.StatusOK, gin.H{"message": successMessage})
 }
 func (uc *UserController) HandlePromote(c *gin.Context) {
-	uc.ChangeUserRole(c, uc.userOperations.Demote, "user promoted successfully")
+	uc.ChangeUserRole(c, uc.userUsecase.Promote, "user promoted successfully")
 }
 
 func (uc *UserController) HandleDemote(c *gin.Context) {
