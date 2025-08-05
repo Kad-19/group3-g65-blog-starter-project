@@ -13,13 +13,13 @@ import (
 )
 
 type AuthUsecase struct {
-	userRepo       domain.UserRepository
-	tokenRepo      domain.TokenRepository
-	hasher         *auth.PasswordHasher
-	jwt            *auth.JWT
-	unactiveRepo   domain.UnactiveUserRepo
-	emailService   *email.EmailService
-	passRepo       domain.PasswordResetRepository
+	userRepo     domain.UserRepository
+	tokenRepo    domain.TokenRepository
+	hasher       *auth.PasswordHasher
+	jwt          *auth.JWT
+	unactiveRepo domain.UnactiveUserRepo
+	emailService *email.EmailService
+	passRepo     domain.PasswordResetRepository
 }
 
 func NewAuthUsecase(
@@ -31,17 +31,17 @@ func NewAuthUsecase(
 	passRepo domain.PasswordResetRepository,
 ) *AuthUsecase {
 	return &AuthUsecase{
-		userRepo:       ur,
-		tokenRepo:      tr,
-		hasher:         &auth.PasswordHasher{},
-		jwt:            jwt,
-		unactiveRepo:   ar,
-		emailService:   es,
-		passRepo:       passRepo,
+		userRepo:     ur,
+		tokenRepo:    tr,
+		hasher:       &auth.PasswordHasher{},
+		jwt:          jwt,
+		unactiveRepo: ar,
+		emailService: es,
+		passRepo:     passRepo,
 	}
 }
 
-func (uc *AuthUsecase) Register(ctx context.Context, email, username, password string) (error) {
+func (uc *AuthUsecase) Register(ctx context.Context, email, username, password string) error {
 	if _, err := uc.userRepo.FindByEmail(ctx, email); err == nil {
 		return errors.New("user already exists")
 	}
@@ -55,20 +55,20 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
-	token, expiry, err := utils.GenerateRandomToken(); 
+	token, expiry, err := utils.GenerateRandomToken()
 	if err != nil {
 		return err
 	}
 
 	user := &domain.UnactivatedUser{
-		Username:     username,
-		Email:        email,
-		Password:     hashedPassword,
-		Activated:    false,
-		ActivationToken:         token,
-		ActivationTokenExpiry:    expiry,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		Username:              username,
+		Email:                 email,
+		Password:              hashedPassword,
+		Activated:             false,
+		ActivationToken:       token,
+		ActivationTokenExpiry: expiry,
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
 	}
 
 	if err := uc.unactiveRepo.CreateUnactiveUser(ctx, user); err != nil {
@@ -82,7 +82,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
-	
+
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (strin
 	if _, err := uc.unactiveRepo.FindByEmailUnactive(ctx, email); err == nil {
 		return "", "", 0, nil, errors.New("user not activated, please check your email for activation link")
 	}
-	
+
 	user, err := uc.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return "", "", 0, nil, errors.New("invalid credentials")
@@ -132,14 +132,14 @@ func (uc *AuthUsecase) ActivateUser(ctx context.Context, token, email string) er
 	}
 
 	user := &domain.User{
-		Username:     unActiveUser.Username,
-		Email:        unActiveUser.Email,
-		Password:     unActiveUser.Password,
-		Role:		 "user",
-		Activated:   true,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}	
+		Username:  unActiveUser.Username,
+		Email:     unActiveUser.Email,
+		Password:  unActiveUser.Password,
+		Role:      "user",
+		Activated: true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 
 	if err := uc.userRepo.Create(ctx, user); err != nil {
 		return errors.New("failed to create user")
