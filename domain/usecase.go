@@ -31,6 +31,8 @@ type AuthUsecase interface {
 	ResendActivationEmail(ctx context.Context, email string) error
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
+	SendActivationToken(ctx context.Context, email string) error
+	Reactivate(ctx context.Context, email string) error
 }
 
 type AIUseCase interface {

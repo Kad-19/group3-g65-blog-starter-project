@@ -4,6 +4,7 @@ import (
 	"g3-g65-bsp/domain"
 	"g3-g65-bsp/infrastructure/auth"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -28,6 +29,10 @@ type AuthController struct {
 
 func NewAuthController(uc domain.AuthUsecase, jwt *auth.JWT) *AuthController {
 	return &AuthController{authUsecase: uc, jwt: jwt}
+}
+
+type ActivatEmail struct {
+	Email string `json:"email" binding:"required,email"`
 }
 
 type ForgotEmail struct {
@@ -73,7 +78,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"expires_in":    expiresIn,
-		"user":         user,
+		"user":          user,
 	})
 }
 
@@ -228,4 +233,18 @@ func (c *AuthController) LogoutAll(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "logged out from all devices"})
+}
+
+func (ac *AuthController) ResendActivationToken(c *gin.Context) {
+	var req ActivatEmail
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	if err := ac.authUsecase.Reactivate(c.Request.Context(), req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "check your email"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "successfully sent reactivation"})
 }

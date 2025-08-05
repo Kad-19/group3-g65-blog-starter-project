@@ -60,6 +60,15 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
+	return user, nil
+}
+
+func (uc *AuthUsecase) SendActivationToken(ctx context.Context, email string) error {
+	activation_token, err := utils.CreateActivationToken(email, 24*time.Hour)
+	if err != nil {
+		return err
+	}
+
 	user := &domain.UnactivatedUser{
 		Username:              username,
 		Email:                 email,
@@ -266,4 +275,19 @@ func (uc *AuthUsecase) Logout(ctx context.Context, refreshToken string) error {
 // LogoutAll (all devices)
 func (uc *AuthUsecase) LogoutAll(ctx context.Context, userID primitive.ObjectID) error {
 	return uc.tokenRepo.DeleteAllForUser(ctx, userID)
+}
+
+func (auc *AuthUsecase) Reactivate(ctx context.Context, email string) error {
+	token, err := auc.activationRepo.GetByEmail(ctx, email)
+	if err != nil {
+		auc.SendActivationToken(ctx, email)
+		return nil
+	}
+
+	if time.Since(token.CreatedAt) > 30*time.Second {
+		auc.SendActivationToken(ctx, email)
+		return nil
+	} else {
+		return fmt.Errorf("token unexpired")
+	}
 }
