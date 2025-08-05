@@ -1,10 +1,8 @@
 package usecase
 
 import (
-	"context"
-	"g3-g65-bsp/domain"
-	"context"
-	"g3-g65-bsp/domain"
+    "context"
+    "g3-g65-bsp/domain"
 )
 
 
