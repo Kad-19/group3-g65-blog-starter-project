@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -10,7 +11,7 @@ import (
 type BlogUsecase interface {
 	CreateBlog(ctx context.Context, blog *Blog) (string, error)
 	GetBlogByID(ctx context.Context, id string) (*Blog, error)
-	UpdateBlog(ctx context.Context, blog *Blog) error
+	UpdateBlog(ctx context.Context, blog *Blog, userid, id string) error
 	DeleteBlog(ctx context.Context, id string) error
 	ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*Blog, *Pagination, error)
 }
@@ -31,3 +32,5 @@ type AuthUsecase interface {
 	InitiateResetPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 }
+
+var ErrUnauthorized = errors.New("unauthorized action")

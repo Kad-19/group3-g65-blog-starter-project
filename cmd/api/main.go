@@ -42,7 +42,7 @@ func main() {
 
     // Initialize router
     r := route.NewRouter()
-	route.BlogRouter(r, blogController)
+	route.BlogRouter(r, blogController, jwt)
 
 	// Register authentication routes
 	route.AuthRouter(r, authController, jwt)

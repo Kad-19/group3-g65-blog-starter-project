@@ -9,11 +9,12 @@ import (
     "github.com/gin-gonic/gin"
 )
 
+
 // BlogDTO is a data transfer object for Blog with JSON restrictions
 type BlogDTO struct {
     ID        string        `json:"id,omitempty"`
-    AuthorID  string        `json:"author_id" binding:"required"`
-    AuthorUsername string `json:"author_username" binding:"required"`
+    AuthorID  string        `json:"author_id"`
+    AuthorUsername string `json:"author_username"`
     Title     string        `json:"title" binding:"required"`
     Content   string        `json:"content" binding:"required"`
     Tags      []string      `json:"tags"`
@@ -35,9 +36,9 @@ type LikesDTO struct {
 
 type CommentDTO struct {
     ID             string     `json:"id,omitempty"`
-    AuthorID       string     `json:"author_id" binding:"required"`
+    AuthorID       string     `json:"author_id"`
     AuthorUsername string     `json:"author_username"`
-    Content        string     `json:"content" binding:"required"`
+    Content        string     `json:"content"`
     CreatedAt      *time.Time `json:"created_at,omitempty"`
 }
 
@@ -154,14 +155,18 @@ func (c *BlogController) GetBlogByID(ctx *gin.Context) {
 }
 
 func (c *BlogController) UpdateBlog(ctx *gin.Context) {
+    userid, ok := ctx.Get("user_id"); if !ok {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+        return
+    }
     id := ctx.Param("id")
+
     var blog BlogDTO
     if err := ctx.ShouldBindJSON(&blog); err != nil {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
         return
     }
-    blog.ID = id
-    err := c.blogUsecase.UpdateBlog(ctx, blog.ConvertToDomain())
+    err := c.blogUsecase.UpdateBlog(ctx, blog.ConvertToDomain(), userid.(string), id)
     if err != nil {
         ctx.JSON(http.StatusNotFound, gin.H{"error": "blog not found"})
         return

@@ -32,8 +32,20 @@ func (u *blogUsecase) GetBlogByID(ctx context.Context, id string) (*domain.Blog,
     return blog, nil
 }
 
-func (u *blogUsecase) UpdateBlog(ctx context.Context, blog *domain.Blog) error {
-    return u.repo.UpdateBlog(ctx, blog)
+func (u *blogUsecase) UpdateBlog(ctx context.Context, blog *domain.Blog, userid, id string) error {
+    // Ensure the blog belongs to the user
+    existingBlog, err := u.repo.GetBlogByID(ctx, id)
+    if err != nil {
+        return err
+    }
+    if existingBlog.AuthorID != userid {
+        return domain.ErrUnauthorized
+    }
+    existingBlog.Title = blog.Title
+    existingBlog.Content = blog.Content
+    existingBlog.Tags = blog.Tags
+    
+    return u.repo.UpdateBlog(ctx, existingBlog)
 }
 
 func (u *blogUsecase) DeleteBlog(ctx context.Context, id string) error {

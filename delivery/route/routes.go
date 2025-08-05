@@ -8,8 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func BlogRouter(r *gin.Engine, blogController *controller.BlogController) {
+func BlogRouter(r *gin.Engine, blogController *controller.BlogController, jwt *auth.JWT) {
     blogGroup := r.Group("/blogs")
+    blogGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
     {
         blogGroup.POST("/", blogController.CreateBlog)
         blogGroup.GET("/", blogController.ListBlogs)
