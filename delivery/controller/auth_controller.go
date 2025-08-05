@@ -1,12 +1,9 @@
 package controller
 
 import (
-	"fmt"
 	"g3-g65-bsp/domain"
 	"g3-g65-bsp/infrastructure/auth"
 	"net/http"
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -22,16 +19,6 @@ type UserCreateRequest struct {
 type UserLoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
-}
-
-// UserResponse represents safe user data for API responses (DTO)
-type UserResponse struct {
-	ID        string             `json:"id"`
-	Username  string             `json:"username"`
-	Email     string             `json:"email"`
-	Role      string             `json:"role"`
-	Profile   domain.UserProfile `json:"profile"`
-	CreatedAt time.Time          `json:"created_at"`
 }
 
 type AuthController struct {
@@ -63,20 +50,13 @@ func (c *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.authUsecase.Register(ctx, req.Email, req.Username, req.Password)
+	err := c.authUsecase.Register(ctx, req.Email, req.Username, req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, UserResponse{
-		ID:        user.ID.Hex(),
-		Username:  user.Username,
-		Email:     user.Email,
-		Role:      user.Role,
-		Profile:   user.Profile,
-		CreatedAt: user.CreatedAt,
-	})
+	ctx.JSON(http.StatusCreated, gin.H{"message": "user registered successfully please check your email to activate your account"})
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {
@@ -87,7 +67,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, expiresIn, err := c.authUsecase.Login(ctx, req.Email, req.Password)
+	accessToken, refreshToken, expiresIn, user, err := c.authUsecase.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
@@ -97,17 +77,24 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"expires_in":    expiresIn,
+		"user":         user,
 	})
 }
 
 func (c *AuthController) ActivateUser(ctx *gin.Context) {
 	token := ctx.Query("token")
 	if token == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "token is required"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "activation token is required"})
 		return
 	}
 
-	err := c.authUsecase.ActivateUser(ctx.Request.Context(), token)
+	email := ctx.Query("email")
+	if email == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+		return
+	}
+
+	err := c.authUsecase.ActivateUser(ctx.Request.Context(), token, email)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -116,14 +103,33 @@ func (c *AuthController) ActivateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "account activated successfully"})
 }
 
-func (ac *AuthController) ForgotPassWord(ctx *gin.Context) {
+func (ac *AuthController) ResendActivationEmail(ctx *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := ac.authUsecase.ResendActivationEmail(ctx.Request.Context(), req.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "activation email resent successfully"})
+}
+
+func (ac *AuthController) ForgotPassword(ctx *gin.Context) {
 	var req ForgotEmail
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := ac.authUsecase.InitiateResetPassword(ctx.Request.Context(), req.Email)
+	err := ac.authUsecase.ForgotPassword(ctx.Request.Context(), req.Email)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{"message": err.Error()})
 		return
@@ -132,7 +138,7 @@ func (ac *AuthController) ForgotPassWord(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "if an account exists, a password reset link has been sent"})
 }
 
-func (ac *AuthController) Reset(c *gin.Context) {
+func (ac *AuthController) ResetPassword(c *gin.Context) {
 	var request PasswordResetRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -209,7 +215,6 @@ func (c *AuthController) LogoutAll(ctx *gin.Context) {
 	}
 
 	userID, exists := ctx.Get("user_id")
-	fmt.Println("User ID from context:", userID)
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 		return

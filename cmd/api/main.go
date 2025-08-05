@@ -9,6 +9,7 @@ import (
 	"g3-g65-bsp/infrastructure/email"
 	"g3-g65-bsp/repository"
 	"g3-g65-bsp/usecase"
+	"g3-g65-bsp/infrastructure/image"
 )
 
 func main() {
@@ -32,12 +33,18 @@ func main() {
 	// Initialize repository, usecase, controller for authentication
 	authRepo := repository.NewUserRepository(db)
 	tokenRepo := repository.NewTokenRepository(db)
-	activationTokenRepo := repository.NewActivationTokenRepo(db)
+	unActiveUserRepo := repository.NewUnactiveUserRepo(db)
 	passwordResetRepo := repository.NewPasswordReset(db)
 	emailService := email.NewEmailService()
 	jwt := auth.NewJWT(accessSecret, refreshSecret, accessExpiry, refreshExpiry)
-	authUsecase := usecase.NewAuthUsecase(authRepo, tokenRepo, jwt, activationTokenRepo, emailService, passwordResetRepo)
+	authUsecase := usecase.NewAuthUsecase(authRepo, tokenRepo, jwt, unActiveUserRepo, emailService, passwordResetRepo)
 	authController := controller.NewAuthController(authUsecase, jwt)
+
+	// Initialize repository, usecase, controller for user management
+	imageUpload := image.NewCloudinaryService()
+	userRepo := repository.NewUserRepository(db)
+	userUsecase := usecase.NewUserUsecase(userRepo, imageUpload)
+	userController := controller.NewUserController(userUsecase)
 
 
     // Initialize router
@@ -46,6 +53,9 @@ func main() {
 
 	// Register authentication routes
 	route.AuthRouter(r, authController, jwt)
+
+	// user management routes
+	route.UserRouter(r, userController, jwt)
 
    // Start the server on port 8080
 	if err := r.Run("localhost:8080"); err != nil {

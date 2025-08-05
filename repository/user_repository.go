@@ -2,13 +2,9 @@ package repository
 
 import (
 	"context"
-	"fmt"
-
-	// <<<<<<< temesgen_user_manag
 	"errors"
 	"g3-g65-bsp/domain"
 	"time"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,7 +14,7 @@ type UserRepository struct {
 	collection *mongo.Collection
 }
 
-func NewUserRepository(db *mongo.Database) *UserRepository {
+func NewUserRepository(db *mongo.Database) domain.UserRepository {
 	return &UserRepository{
 		collection: db.Collection("users"),
 	}
@@ -48,7 +44,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*
 	return &user, err
 }
 
-func (mr *UserRepository) UpdateUser(ctx context.Context, bio string, contactInfo string, imagePath string, Email string) error {
+func (mr *UserRepository) UpdateUserProfile(ctx context.Context, bio string, contactInfo string, imagePath string, Email string) error {
 	filter := bson.M{"email": Email}
 	update := bson.M{
 		"$set": bson.M{
@@ -62,7 +58,7 @@ func (mr *UserRepository) UpdateUser(ctx context.Context, bio string, contactInf
 		return err
 	} else {
 		if res.MatchedCount == 0 {
-			return fmt.Errorf("no user found")
+			return errors.New("user not found")
 		}
 		return nil
 	}
@@ -80,7 +76,7 @@ func (mr *UserRepository) UpdateUserRole(ctx context.Context, role string, Email
 		return err
 	} else {
 		if res.MatchedCount == 0 {
-			return fmt.Errorf("no user found")
+			return errors.New("user not found")
 		}
 		return nil
 	}
@@ -97,7 +93,7 @@ func (mr *UserRepository) UpdateActiveStatus(ctx context.Context, email string) 
 		return err
 	} else {
 		if res.MatchedCount == 0 {
-			return fmt.Errorf("no user found")
+			return errors.New("user not found")
 		}
 		return nil
 	}
@@ -115,10 +111,80 @@ func (mr *UserRepository) UpdateUserPassword(ctx context.Context, email string, 
 		return err
 	} else {
 		if res.MatchedCount == 0 {
-			return fmt.Errorf("no user found")
+			return errors.New("user not found")
 		}
 		return nil
 	}
 }
 
-// >>>>>>> main
+func (r *UserRepository) UpdateActivateToken(ctx context.Context, email string) error {
+	filter := bson.M{"email": email}
+	update := bson.M{
+		"$set": bson.M{
+			"activate_token": "",
+		},
+	}
+
+	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	} else {
+		if res.MatchedCount == 0 {
+			return errors.New("user not found")
+		}
+		return nil
+	}
+}
+
+func (r *UserRepository) UpdateActivateTokenExpiration(ctx context.Context, email string, expiration time.Time) error {
+	filter := bson.M{"email": email}
+	update := bson.M{
+		"$set": bson.M{
+			"activate_token_expiration": expiration,
+		},
+	}
+
+	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	} else {
+		if res.MatchedCount == 0 {
+			return errors.New("user not found")
+		}
+		return nil
+	}
+}
+
+func (r *UserRepository) UpdateResetPasswordToken(ctx context.Context, email string) error {
+	filter := bson.M{"email": email}
+	update := bson.M{
+		"$set": bson.M{
+			"reset_password_token": "",
+		},
+	}
+
+	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	} else {
+		if res.MatchedCount == 0 {
+			return errors.New("user not found")
+		}
+		return nil
+	}
+}
+
+func (r *UserRepository) UpdateResetPasswordTokenExpiration(ctx context.Context, email string, expiration time.Time) error {
+	filter := bson.M{"email": email}
+	update := bson.M{
+		"$set": bson.M{
+			"reset_password_token_expiration": expiration,
+		},
+	}
+
+	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
+		return err
+	} else {
+		if res.MatchedCount == 0 {
+			return errors.New("user not found")
+		}
+		return nil
+	}
+}
