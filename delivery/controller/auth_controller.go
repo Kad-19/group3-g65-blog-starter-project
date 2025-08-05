@@ -4,6 +4,7 @@ import (
 	"g3-g65-bsp/domain"
 	"g3-g65-bsp/infrastructure/auth"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -77,7 +78,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"expires_in":    expiresIn,
-		"user":         user,
+		"user":          user,
 	})
 }
 

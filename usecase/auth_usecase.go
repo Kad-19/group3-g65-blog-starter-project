@@ -60,6 +60,15 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
+	return user, nil
+}
+
+func (uc *AuthUsecase) SendActivationToken(ctx context.Context, email string) error {
+	activation_token, err := utils.CreateActivationToken(email, 24*time.Hour)
+	if err != nil {
+		return err
+	}
+
 	user := &domain.UnactivatedUser{
 		Username:              username,
 		Email:                 email,
