@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"g3-g65-bsp/domain"
 	"g3-g65-bsp/infrastructure/auth"
-	"g3-g65-bsp/infrastructure/email"
 	"g3-g65-bsp/utils"
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -18,7 +18,7 @@ type AuthUsecase struct {
 	hasher         *auth.PasswordHasher
 	jwt            *auth.JWT
 	activationRepo domain.ActivationTokenRepository
-	emailService   *email.EmailService
+	emailService   domain.EmailProvider
 	passRepo       domain.PasswordResetRepository
 }
 
@@ -27,7 +27,7 @@ func NewAuthUsecase(
 	tr domain.TokenRepository,
 	jwt *auth.JWT,
 	ar domain.ActivationTokenRepository,
-	es *email.EmailService,
+	es domain.EmailProvider,
 	passRepo domain.PasswordResetRepository,
 ) *AuthUsecase {
 	return &AuthUsecase{
@@ -52,13 +52,13 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 	}
 
 	user := &domain.User{
-		Username:     username,
-		Email:        email,
-		Password:     hashedPassword,
-		Role:         "User",
-		Activated:    false,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		Username:  username,
+		Email:     email,
+		Password:  hashedPassword,
+		Role:      "User",
+		Activated: false,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	if err := uc.userRepo.Create(ctx, user); err != nil {
@@ -83,7 +83,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
-	
+
 	return user, nil
 }
 
