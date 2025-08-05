@@ -261,8 +261,8 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
     defer cur.Close(ctx)
     var blogs []*domain.Blog
     for cur.Next(ctx) {
-        var blog domain.Blog
-        if err := cur.Decode(&blog); err != nil {
+        var model BlogModel
+        if err := cur.Decode(&model); err != nil {
             return nil, nil, err
         }
         blogs = append(blogs, model.ToDomain())
