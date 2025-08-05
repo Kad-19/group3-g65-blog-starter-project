@@ -1,8 +1,8 @@
 package usecase
 
 import (
-    "context"
-    "g3-g65-bsp/domain"
+	"context"
+	"g3-g65-bsp/domain"
 )
 
 
@@ -19,7 +19,17 @@ func (u *blogUsecase) CreateBlog(ctx context.Context, blog *domain.Blog) (string
 }
 
 func (u *blogUsecase) GetBlogByID(ctx context.Context, id string) (*domain.Blog, error) {
-    return u.repo.GetBlogByID(ctx, id)
+    blog, err := u.repo.GetBlogByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
+    // Atomically increment the view count in the database
+    if blog != nil {
+        _ = u.repo.IncrementBlogViewCount(ctx, id, blog)
+
+        blog.Metrics.ViewCount += 1 // reflect increment in returned object
+    }
+    return blog, nil
 }
 
 func (u *blogUsecase) UpdateBlog(ctx context.Context, blog *domain.Blog) error {
@@ -30,6 +40,7 @@ func (u *blogUsecase) DeleteBlog(ctx context.Context, id string) error {
     return u.repo.DeleteBlog(ctx, id)
 }
 
-func (u *blogUsecase) ListBlogs(ctx context.Context, filter map[string]interface{}) ([]*domain.Blog, error) {
-    return u.repo.ListBlogs(ctx, filter)
+// ListBlogs allows filtering by tags ([]string), date (created_at_from, created_at_to), or popularity (min_views)
+func (u *blogUsecase) ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*domain.Blog, *domain.Pagination, error) {
+    return u.repo.ListBlogs(ctx, filter, page, limit)
 }
