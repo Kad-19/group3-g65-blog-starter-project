@@ -7,6 +7,7 @@ import (
 type ActivationToken struct {
 	Token     string
 	Email     string
+	CreatedAt time.Time
 	ExpiresAt time.Time
 }
 

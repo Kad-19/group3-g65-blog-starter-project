@@ -28,6 +28,7 @@ func CreateActivationToken(email string, expiryDuration time.Duration) (*domain.
 	newToken := domain.ActivationToken{
 		Email:     email,
 		Token:     tokenValue,
+		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(expiryDuration),
 	}
 

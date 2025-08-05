@@ -65,26 +65,34 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return nil, err
 	}
 
-	activation_token, err := utils.CreateActivationToken(user.Email, 24*time.Hour)
-	if err != nil {
+	if err := uc.SendActivationToken(ctx, user.Email); err != nil {
 		return nil, err
 	}
 
+	return user, nil
+}
+
+func (uc *AuthUsecase) SendActivationToken(ctx context.Context, email string) error {
+	activation_token, err := utils.CreateActivationToken(email, 24*time.Hour)
+	if err != nil {
+		return err
+	}
+
 	if err := uc.activationRepo.Create(ctx, activation_token); err != nil {
-		return nil, err
+		return err
 	}
 
 	activationLink := ""
 	// activationLink := "" + activation_token
 	go func() { // Send email asynchronously
-		err := uc.emailService.SendActivationEmail(user.Email, activationLink)
+		err := uc.emailService.SendActivationEmail(email, activationLink)
 		if err != nil {
 			// Log the error, but don't fail the registration process
 			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
 
-	return user, nil
+	return nil
 }
 
 func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (string, string, int, error) {
@@ -237,4 +245,19 @@ func (uc *AuthUsecase) Logout(ctx context.Context, refreshToken string) error {
 // LogoutAll (all devices)
 func (uc *AuthUsecase) LogoutAll(ctx context.Context, userID primitive.ObjectID) error {
 	return uc.tokenRepo.DeleteAllForUser(ctx, userID)
+}
+
+func (auc *AuthUsecase) Reactivate(ctx context.Context, email string) error {
+	token, err := auc.activationRepo.GetByEmail(ctx, email)
+	if err != nil {
+		auc.SendActivationToken(ctx, email)
+		return nil
+	}
+
+	if time.Since(token.CreatedAt) > 30*time.Second {
+		auc.SendActivationToken(ctx, email)
+		return nil
+	} else {
+		return fmt.Errorf("token unexpired")
+	}
 }

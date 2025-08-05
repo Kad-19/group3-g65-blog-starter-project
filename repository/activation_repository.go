@@ -14,6 +14,7 @@ import (
 type ActivationTokenDTO struct {
 	Token     string    `bson:"token,omitempty"`
 	Email     string    `bson:"email,omitempty"`
+	CreatedAt time.Time `bson:"created_at"`
 	ExpiresAt time.Time `bson:"expires_at"`
 }
 
@@ -53,10 +54,25 @@ func (at *ActivationTokenRepo) Delete(ctx context.Context, token string) error {
 	return err
 }
 
+func (at *ActivationTokenRepo) GetByEmail(ctx context.Context, email string) (*domain.ActivationToken, error) {
+	var dto ActivationTokenDTO
+	filter := bson.M{"email": email}
+
+	err := at.collection.FindOne(ctx, filter).Decode(&dto)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("token not found")
+		}
+		return nil, err
+	}
+	return toDomain(&dto), nil
+}
+
 func toDTO(token *domain.ActivationToken) *ActivationTokenDTO {
 	return &ActivationTokenDTO{
 		Token:     token.Token,
 		Email:     token.Email,
+		CreatedAt: token.CreatedAt,
 		ExpiresAt: token.ExpiresAt,
 	}
 }
@@ -65,6 +81,7 @@ func toDomain(dto *ActivationTokenDTO) *domain.ActivationToken {
 	return &domain.ActivationToken{
 		Token:     dto.Token,
 		Email:     dto.Email,
+		CreatedAt: dto.CreatedAt,
 		ExpiresAt: dto.ExpiresAt,
 	}
 }

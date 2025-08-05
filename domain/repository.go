@@ -30,6 +30,7 @@ type ActivationTokenRepository interface {
 	Create(ctx context.Context, token *ActivationToken) error
 	GetByToken(ctx context.Context, token string) (*ActivationToken, error)
 	Delete(ctx context.Context, token string) error
+	GetByEmail(ctx context.Context, email string) (*ActivationToken, error)
 }
 
 type PasswordResetRepository interface {
