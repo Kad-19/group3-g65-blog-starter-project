@@ -9,16 +9,16 @@ import (
 )
 
 type UserController struct {
-	userOperations domain.UserUseCase
+	userUsecase domain.UserUsecase
 }
 
 type emailRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
-func NewUserController(uuc domain.UserUseCase) *UserController {
+func NewUserController(uuc domain.UserUsecase) *UserController {
 	return &UserController{
-		userOperations: uuc,
+		userUsecase: uuc,
 	}
 }
 
@@ -30,7 +30,7 @@ func (uc *UserController) HandlePromote(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err := uc.userOperations.Promote(ctx, req.Email)
+	err := uc.userUsecase.Promote(ctx, req.Email)
 	if err != nil {
 		c.IndentedJSON(http.StatusNotFound, err)
 		return
@@ -46,7 +46,7 @@ func (uc *UserController) HandleDemote(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err := uc.userOperations.Demote(ctx, req.Email)
+	err := uc.userUsecase.Demote(ctx, req.Email)
 	if err != nil {
 		c.IndentedJSON(http.StatusNotFound, err)
 		return
@@ -90,7 +90,7 @@ func (uc *UserController) HandleUpdateUser(c *gin.Context) {
 	defer fileReader.Close()
 
 	ctx := c.Request.Context()
-	if err := uc.userOperations.ProfileUpdate(ctx, userID, bio, contactinfo, fileReader); err != nil {
+	if err := uc.userUsecase.ProfileUpdate(ctx, userID, bio, contactinfo, fileReader); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

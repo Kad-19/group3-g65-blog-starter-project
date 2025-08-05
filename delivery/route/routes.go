@@ -24,11 +24,27 @@ func AuthRouter(r *gin.Engine, authController *controller.AuthController, jwt *a
     {
         authGroup.POST("/register", authController.Register)
         authGroup.POST("/login", authController.Login)
+        authGroup.POST("/activate", authController.ActivateUser)
+        authGroup.POST("/resend-activation", authController.ResendActivationEmail)
+        authGroup.POST("/forgot-password", authController.ForgotPassword)
+        authGroup.POST("/reset-password", authController.ResetPassword)
         authGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
         {
             authGroup.POST("/refresh", authController.Refresh)
             authGroup.POST("/logout", authController.Logout)      // Single device
             authGroup.POST("/logout-all", authController.LogoutAll) // All devices
+        }
+    }
+}
+
+func UserRouter(r *gin.Engine, userController *controller.UserController, jwt *auth.JWT){
+    userGroup := r.Group("/user")
+    {
+        userGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
+        {
+            userGroup.POST("/update-profile", userController.HandleUpdateUser)
+            userGroup.POST("/promote", middleware.RoleMiddleware(), userController.HandlePromote)
+            userGroup.POST("/demote", middleware.RoleMiddleware(), userController.HandleDemote)
         }
     }
 }

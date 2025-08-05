@@ -2,42 +2,27 @@ package utils
 
 import (
 	"crypto/rand"
-	"encoding/hex"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"g3-g65-bsp/domain"
 	"time"
 )
 
-func generateSecureToken(length int) (string, error) {
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
 
-func CreateActivationToken(email string, expiryDuration time.Duration) (*domain.ActivationToken, error) {
-	// Generate a 32-byte long token (64 hex characters).
-	tokenValue, err := generateSecureToken(32)
-	if err != nil {
-		return &domain.ActivationToken{}, fmt.Errorf("failed to generate token: %w", err)
+func GenerateRandomToken() (string, *time.Time, error) {
+	b := make([]byte, 32) // 32 bytes = 256 bits
+	if _, err := rand.Read(b); err != nil {
+		return "", nil, errors.New("failed to generate random token")
 	}
-
-	// Create the token object with an expiration time.
-	// This is important for security to prevent tokens from being valid indefinitely.
-	newToken := domain.ActivationToken{
-		Email:     email,
-		Token:     tokenValue,
-		ExpiresAt: time.Now().Add(expiryDuration),
-	}
-
-	// Store the token in our "database".
-	return &newToken, nil
+	token := base64.URLEncoding.EncodeToString(b)
+	expiry := time.Now().Add(30 * time.Minute)
+	return token, &expiry, nil
 }
 
 func CreateResetToken(email string, expiryDuration time.Duration) (*domain.PasswordResetToken, error) {
 	// Generate a 32-byte long token (64 hex characters).
-	tokenValue, err := generateSecureToken(32)
+	tokenValue, expiry, err := GenerateRandomToken()
 	if err != nil {
 		return &domain.PasswordResetToken{}, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -47,9 +32,8 @@ func CreateResetToken(email string, expiryDuration time.Duration) (*domain.Passw
 	newToken := domain.PasswordResetToken{
 		Email:     email,
 		Token:     tokenValue,
-		ExpiresAt: time.Now().Add(expiryDuration),
+		ExpiresAt: *expiry,
 	}
-
-	// Store the token in our "database".
+	// Here you would typically save the token to your database.
 	return &newToken, nil
 }

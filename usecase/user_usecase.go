@@ -10,19 +10,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type UserOperations struct {
+type UserUsecase struct {
 	userRepo      domain.UserRepository
 	imageUploader domain.ImageUploader
 }
 
-func NewUserUseCase(ur domain.UserRepository, iu domain.ImageUploader) *UserOperations {
-	return &UserOperations{
+func NewUserUsecase(ur domain.UserRepository, iu domain.ImageUploader) domain.UserUsecase {
+	return &UserUsecase{
 		userRepo:      ur,
 		imageUploader: iu,
 	}
 }
 
-func (upd *UserOperations) Promote(ctx context.Context, Email string) error {
+func (upd *UserUsecase) Promote(ctx context.Context, Email string) error {
 	user, err := upd.userRepo.FindByEmail(ctx, Email)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func (upd *UserOperations) Promote(ctx context.Context, Email string) error {
 	return nil
 }
 
-func (upd *UserOperations) Demote(ctx context.Context, Email string) error {
+func (upd *UserUsecase) Demote(ctx context.Context, Email string) error {
 	user, err := upd.userRepo.FindByEmail(ctx, Email)
 	if err != nil {
 		return err
@@ -52,18 +52,18 @@ func (upd *UserOperations) Demote(ctx context.Context, Email string) error {
 	return nil
 }
 
-func (upd *UserOperations) ProfileUpdate(ctx context.Context, userid primitive.ObjectID, bio string, contactinfo string, file io.Reader) error {
+func (upd *UserUsecase) ProfileUpdate(ctx context.Context, userid primitive.ObjectID, bio string, contactinfo string, file io.Reader) error {
 	user, err := upd.userRepo.FindByID(ctx, userid)
 	if err != nil {
 		return err
 	}
 
-	imageURL, err := upd.imageUploader.UploadImage(ctx, file, "uploads/profile")
+	imageURL, err := upd.imageUploader.UploadImage(ctx, file, "profile")
 	if err != nil {
 		return errors.New("failed to upload image")
 	}
 
-	if err := upd.userRepo.UpdateUser(ctx, bio, contactinfo, imageURL, user.Email); err != nil {
+	if err := upd.userRepo.UpdateUserProfile(ctx, bio, contactinfo, imageURL, user.Email); err != nil {
 		return err
 	}
 	return nil
