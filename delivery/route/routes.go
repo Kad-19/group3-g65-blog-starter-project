@@ -8,6 +8,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func InteractionRouter (r *gin.Engine, interactionController *controller.InteractionController, jwt *auth.JWT) {
+    interactionGroup := r.Group("/blogs")
+    interactionGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
+    {
+        interactionGroup.POST("/like/:id", interactionController.LikeBlog)
+        interactionGroup.POST("/comment/:id", interactionController.CommentOnBlog)
+    }
+}
+
 func BlogRouter(r *gin.Engine, blogController *controller.BlogController, jwt *auth.JWT) {
     blogGroup := r.Group("/blogs")
     blogGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware

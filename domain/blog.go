@@ -11,15 +11,16 @@ type Blog struct {
     Title     string   
     Content   string   
     Tags      []string 
-    Metrics   Metrics  
+    Metrics   *Metrics  
     Comments  []Comment 
-    CreatedAt time.Time            
-    UpdatedAt time.Time            
+    CreatedAt *time.Time            
+    UpdatedAt *time.Time            
 }
 
 type Metrics struct {
     ViewCount int    
-    Likes     Likes  
+    Likes     *Likes
+    Dislikes  *Likes  
 }
 
 type Likes struct {
@@ -32,5 +33,5 @@ type Comment struct {
     AuthorID       string    
     AuthorUsername string    
     Content        string   
-    CreatedAt      time.Time 
+    CreatedAt      *time.Time 
 }

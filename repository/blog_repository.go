@@ -1,16 +1,15 @@
-
-
 package repository
 
 import (
-    "context"
-    "errors"
-    "time"
-    "g3-g65-bsp/domain"
-    "go.mongodb.org/mongo-driver/bson"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
-    "go.mongodb.org/mongo-driver/bson/primitive"
+	"context"
+	"errors"
+	"g3-g65-bsp/domain"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Blog model in repository package
@@ -22,15 +21,16 @@ type BlogModel struct {
     Title     string        `bson:"title"`
     Content   string        `bson:"content"`
     Tags      []string      `bson:"tags"`
-    Metrics   Metrics       `bson:"metrics"`
+    Metrics   *Metrics       `bson:"metrics"`
     Comments  []Comment     `bson:"comments"`
-    CreatedAt time.Time     `bson:"created_at"`
-    UpdatedAt time.Time     `bson:"updated_at"`
+    CreatedAt *time.Time     `bson:"created_at"`
+    UpdatedAt *time.Time     `bson:"updated_at"`
 }
 
 type Metrics struct {
     ViewCount int            `bson:"view_count"`
-    Likes     Likes          `bson:"likes"`
+    Likes     *Likes          `bson:"likes"`
+    Dislikes  *Likes          `bson:"dislikes"`
 }
 
 type Likes struct {
@@ -39,19 +39,50 @@ type Likes struct {
 }
 
 type Comment struct {
-    ID             string        `bson:"id"`
-    AuthorID       string        `bson:"author_id"`
+    ID             primitive.ObjectID        `bson:"id"`
+    AuthorID       primitive.ObjectID        `bson:"author_id"`
     AuthorUsername string        `bson:"author_username"`
     Content        string        `bson:"content"`
-    CreatedAt      time.Time     `bson:"created_at"`
+    CreatedAt      *time.Time     `bson:"created_at"`
+}
+
+func FromDomain(comment *domain.Comment) *Comment {
+    var authorID primitive.ObjectID
+    var err error
+    authorID, err = primitive.ObjectIDFromHex(comment.AuthorID)
+    if err != nil {
+        authorID = primitive.NilObjectID
+    }
+    var id primitive.ObjectID
+    id, err = primitive.ObjectIDFromHex(comment.ID)
+    if err != nil {
+        id = primitive.NilObjectID
+    }
+    return &Comment{
+        ID:             id,
+        AuthorID:       authorID,
+        AuthorUsername: comment.AuthorUsername,
+        Content:        comment.Content,
+        CreatedAt:      comment.CreatedAt,
+    }
+}
+
+func (c *Comment) ToDomain() *domain.Comment {
+    return &domain.Comment{
+        ID:             c.ID.Hex(),
+        AuthorID:       c.AuthorID.Hex(),
+        AuthorUsername: c.AuthorUsername,
+        Content:        c.Content,
+        CreatedAt:      c.CreatedAt,
+    }
 }
 
 func (m *BlogModel) ToDomain() *domain.Blog {
     comments := make([]domain.Comment, len(m.Comments))
     for i, c := range m.Comments {
         comments[i] = domain.Comment{
-            ID:             c.ID,
-            AuthorID:       c.AuthorID,
+            ID:             c.ID.Hex(),
+            AuthorID:       c.AuthorID.Hex(),
             AuthorUsername: c.AuthorUsername,
             Content:        c.Content,
             CreatedAt:      c.CreatedAt,
@@ -64,11 +95,15 @@ func (m *BlogModel) ToDomain() *domain.Blog {
         Title:          m.Title,
         Content:       m.Content,
         Tags:          m.Tags,
-        Metrics:       domain.Metrics{
+        Metrics:       &domain.Metrics{
             ViewCount: m.Metrics.ViewCount,
-            Likes:     domain.Likes{
+            Likes:     &domain.Likes{
                 Count: m.Metrics.Likes.Count,
                 Users: m.Metrics.Likes.Users,
+            },
+            Dislikes: &domain.Likes{
+                Count: m.Metrics.Dislikes.Count,
+                Users: m.Metrics.Dislikes.Users,
             },
         },
         Comments:      comments,
@@ -91,23 +126,39 @@ func (m *BlogModel) FromDomain(blog *domain.Blog) {
     m.Title = blog.Title
     m.Content = blog.Content
     m.Tags = blog.Tags
-    m.Metrics = Metrics{
+    m.Metrics = &Metrics{
         ViewCount: blog.Metrics.ViewCount,
-        Likes: Likes{
+        Likes: &Likes{
             Count: blog.Metrics.Likes.Count,
             Users: blog.Metrics.Likes.Users,
         },
+        Dislikes: &Likes{
+            Count: blog.Metrics.Dislikes.Count,
+            Users: blog.Metrics.Dislikes.Users,
+        },
     }
-    m.Comments = make([]Comment, len(blog.Comments))
+    comments := make([]Comment, len(blog.Comments))
     for i, c := range blog.Comments {
-        m.Comments[i] = Comment{
-            ID:             c.ID,
-            AuthorID:       c.AuthorID,
+        var authorID primitive.ObjectID
+        var err error
+        authorID, err = primitive.ObjectIDFromHex(c.AuthorID)
+        if err != nil {
+            authorID = primitive.NilObjectID
+        }
+        var id primitive.ObjectID
+        id, err = primitive.ObjectIDFromHex(c.ID)
+        if err != nil {
+            id = primitive.NilObjectID
+        }
+        comments[i] = Comment{
+            ID:             id,
+            AuthorID:       authorID,
             AuthorUsername: c.AuthorUsername,
             Content:        c.Content,
             CreatedAt:      c.CreatedAt,
         }
     }
+    m.Comments = comments
     m.CreatedAt = blog.CreatedAt
     m.UpdatedAt = blog.UpdatedAt
 }
@@ -128,8 +179,6 @@ func (r *mongoBlogRepository) CreateBlog(ctx context.Context, blog *domain.Blog)
     var model BlogModel
     model.FromDomain(blog)
     model.ID = primitive.NewObjectID()
-    model.CreatedAt = time.Now()
-    model.UpdatedAt = model.CreatedAt
 
     res, err := r.collection.InsertOne(ctx, model)
     if err != nil {
@@ -163,14 +212,11 @@ func (r *mongoBlogRepository) GetBlogByID(ctx context.Context, id string) (*doma
 func (r *mongoBlogRepository) UpdateBlog(ctx context.Context, blog *domain.Blog) error {
     var model BlogModel
     model.FromDomain(blog)
-    model.UpdatedAt = time.Now()
+    now := time.Now()
+    model.UpdatedAt = &now
 
-    oid, err := primitive.ObjectIDFromHex(blog.ID)
-    if err != nil {
-        return ErrBlogNotFound
-    }
 
-    filter := bson.M{"_id": oid}
+    filter := bson.M{"_id": model.ID}
     update := bson.M{"$set": model}
 
     result, err := r.collection.UpdateOne(ctx, filter, update)
@@ -285,6 +331,25 @@ func (r *mongoBlogRepository) IncrementBlogViewCount(ctx context.Context, id str
     }
     filter := bson.M{"_id": oid}
     update := bson.M{"$inc": bson.M{"metrics.view_count": 1}}
+    result, err := r.collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        return err
+    }
+    if result.MatchedCount == 0 {
+        return ErrBlogNotFound
+    }
+    return nil
+}
+
+func (r *mongoBlogRepository) AddComment(ctx context.Context, blogID string, comment *domain.Comment) error {
+    oid, err := primitive.ObjectIDFromHex(blogID)
+    if err != nil {
+        return ErrBlogNotFound
+    }
+    newComment := FromDomain(comment)
+    newComment.ID = primitive.NewObjectID()
+    filter := bson.M{"_id": oid}
+    update := bson.M{"$push": bson.M{"comments": newComment}}
     result, err := r.collection.UpdateOne(ctx, filter, update)
     if err != nil {
         return err
