@@ -234,17 +234,3 @@ func (c *AuthController) LogoutAll(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "logged out from all devices"})
 }
-
-func (ac *AuthController) ResendActivationToken(c *gin.Context) {
-	var req ActivatEmail
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
-		return
-	}
-
-	if err := ac.authUsecase.Reactivate(c.Request.Context(), req.Email); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "check your email"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "successfully sent reactivation"})
-}
