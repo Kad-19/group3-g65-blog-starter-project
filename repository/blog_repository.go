@@ -10,8 +10,6 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
-    "go.mongodb.org/mongo-driver/mongo/options"
-    "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -276,14 +274,8 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
         Total: int(total),
         Page:  page,
         Limit: limit,
-        return nil, nil, err
     }
-
-    pagination := &domain.Pagination{
-        Total: int(total),
-        Page:  page,
-        Limit: limit,
-    }
+    
     return blogs, pagination, nil
 }
 // IncrementBlogViewCount atomically increments the view count of a blog post

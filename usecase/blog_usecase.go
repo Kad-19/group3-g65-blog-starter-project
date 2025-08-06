@@ -3,8 +3,6 @@ package usecase
 import (
 	"context"
 	"g3-g65-bsp/domain"
-	"context"
-	"g3-g65-bsp/domain"
 )
 
 
@@ -42,10 +40,6 @@ func (u *blogUsecase) DeleteBlog(ctx context.Context, id string) error {
     return u.repo.DeleteBlog(ctx, id)
 }
 
-// ListBlogs allows filtering by tags ([]string), date (created_at_from, created_at_to), or popularity (min_views)
-func (u *blogUsecase) ListBlogs(ctx context.Context, filter map[string]interface{}) ([]*domain.Blog, error) {
-
-    return u.repo.ListBlogs(ctx, filter)
 // ListBlogs allows filtering by tags ([]string), date (created_at_from, created_at_to), or popularity (min_views)
 func (u *blogUsecase) ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*domain.Blog, *domain.Pagination, error) {
     return u.repo.ListBlogs(ctx, filter, page, limit)
