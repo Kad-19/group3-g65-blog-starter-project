@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -27,14 +26,13 @@ type UserLoginRequest struct {
 
 // UserResponse represents safe user data for API responses (DTO)
 type UserResponse struct {
-	ID        string      `json:"id"`
-	Username  string      `json:"username"`
-	Email     string      `json:"email"`
-	Role      string      `json:"role"`
+	ID        string             `json:"id"`
+	Username  string             `json:"username"`
+	Email     string             `json:"email"`
+	Role      string             `json:"role"`
 	Profile   domain.UserProfile `json:"profile"`
-	CreatedAt time.Time   `json:"created_at"`
+	CreatedAt time.Time          `json:"created_at"`
 }
-
 
 type AuthController struct {
 	authUsecase domain.AuthUsecase
@@ -43,6 +41,10 @@ type AuthController struct {
 
 func NewAuthController(uc domain.AuthUsecase, jwt *auth.JWT) *AuthController {
 	return &AuthController{authUsecase: uc, jwt: jwt}
+}
+
+type ActivatEmail struct {
+	Email string `json:"email" binding:"required,email"`
 }
 
 type ForgotEmail struct {
@@ -146,7 +148,6 @@ func (ac *AuthController) Reset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "password has been reset successfully"})
 }
 
-
 // Refresh Tokens
 func (c *AuthController) Refresh(ctx *gin.Context) {
 	if ctx.GetHeader("Authorization") == "" {
@@ -226,4 +227,18 @@ func (c *AuthController) LogoutAll(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "logged out from all devices"})
+}
+
+func (ac *AuthController) ResendActivationToken(c *gin.Context) {
+	var req ActivatEmail
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	if err := ac.authUsecase.Reactivate(c.Request.Context(), req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "check your email"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "successfully sent reactivation"})
 }
