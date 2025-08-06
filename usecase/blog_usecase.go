@@ -3,19 +3,52 @@ package usecase
 import (
 	"context"
 	"g3-g65-bsp/domain"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 
 type blogUsecase struct {
     repo domain.BlogRepository
+    userRepo domain.UserRepository
 }
 
-func NewBlogUsecase(repo domain.BlogRepository) domain.BlogUsecase {
-    return &blogUsecase{repo: repo}
+func NewBlogUsecase(repo domain.BlogRepository, userRepo domain.UserRepository) domain.BlogUsecase {
+    return &blogUsecase{repo: repo, userRepo: userRepo}
 }
 
-func (u *blogUsecase) CreateBlog(ctx context.Context, blog *domain.Blog) (string, error) {
-    return u.repo.CreateBlog(ctx, blog)
+func (u *blogUsecase) CreateBlog(ctx context.Context, blog *domain.Blog, userid string) (*domain.Blog, error) {
+    oid, err:= primitive.ObjectIDFromHex(userid)
+    if err != nil {
+        return nil, err
+    }
+    
+    existingUser, err := u.userRepo.FindByID(ctx, oid)
+    if err != nil {
+        return nil, err
+    }
+    blog.AuthorID = userid
+    blog.AuthorUsername = existingUser.Username
+
+
+    now := time.Now()
+    blog.CreatedAt = &now
+    blog.UpdatedAt = blog.CreatedAt
+    blog.Metrics = &domain.Metrics{
+        ViewCount: 0,
+        Likes:     &domain.Likes{Count: 0, Users: []string{}},
+        Dislikes:  &domain.Likes{Count: 0, Users: []string{}},
+    }
+    blog.Comments = []domain.Comment{}
+
+
+    blogid, err := u.repo.CreateBlog(ctx, blog)
+    if err != nil {
+        return nil, err
+    }
+    blog.ID = blogid
+    return blog, nil
 }
 
 func (u *blogUsecase) GetBlogByID(ctx context.Context, id string) (*domain.Blog, error) {
@@ -32,8 +65,24 @@ func (u *blogUsecase) GetBlogByID(ctx context.Context, id string) (*domain.Blog,
     return blog, nil
 }
 
-func (u *blogUsecase) UpdateBlog(ctx context.Context, blog *domain.Blog) error {
-    return u.repo.UpdateBlog(ctx, blog)
+func (u *blogUsecase) UpdateBlog(ctx context.Context, blog *domain.Blog, userid, id string) (*domain.Blog, error) {
+    // Ensure the blog belongs to the user
+    existingBlog, err := u.repo.GetBlogByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
+    if existingBlog.AuthorID != userid {
+        return nil, domain.ErrUnauthorized
+    }
+    existingBlog.Title = blog.Title
+    existingBlog.Content = blog.Content
+    existingBlog.Tags = blog.Tags
+    
+    e := u.repo.UpdateBlog(ctx, existingBlog)
+    if e != nil {
+        return nil, e
+    }
+    return existingBlog, nil
 }
 
 func (u *blogUsecase) DeleteBlog(ctx context.Context, id string) error {

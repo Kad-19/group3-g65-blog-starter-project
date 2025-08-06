@@ -14,6 +14,7 @@ type BlogRepository interface {
 	DeleteBlog(ctx context.Context, id string) error
 	ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*Blog, *Pagination, error)
 	IncrementBlogViewCount(ctx context.Context, id string, blog *Blog) error
+	AddComment(ctx context.Context, blogID string, comment *Comment) error
 }
 
 type UserRepository interface {
@@ -46,4 +47,9 @@ type TokenRepository interface {
 	StoreRefreshToken(ctx context.Context, userID primitive.ObjectID, tokenHash string, expiresAt time.Time) error
 	FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (primitive.ObjectID, error)
 	DeleteAllForUser(ctx context.Context, userID primitive.ObjectID) error
+}
+
+type InteractionRepository interface {
+	LikeBlog(ctx context.Context, userID string, blogID string, preftype string) error
+	CommentOnBlog(ctx context.Context, userID string, blogID string, comment *Comment) error
 }

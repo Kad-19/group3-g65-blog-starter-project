@@ -2,15 +2,16 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type BlogUsecase interface {
-	CreateBlog(ctx context.Context, blog *Blog) (string, error)
+	CreateBlog(ctx context.Context, blog *Blog, userid string) (*Blog, error)
 	GetBlogByID(ctx context.Context, id string) (*Blog, error)
-	UpdateBlog(ctx context.Context, blog *Blog) error
+	UpdateBlog(ctx context.Context, blog *Blog, userid, id string) (*Blog, error)
 	DeleteBlog(ctx context.Context, id string) error
 	ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*Blog, *Pagination, error)
 }
@@ -32,6 +33,14 @@ type AuthUsecase interface {
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 }
+
+type InteractionUsecase interface {
+	LikeBlog(ctx context.Context, userID string, blogID string, preftype string) error
+	CommentOnBlog(ctx context.Context, userID string, blogID string, comment *Comment) error
+}
+
+var ErrUnauthorized = errors.New("unauthorized action")
+var ErrInvalidpreftype = errors.New("invalid preference type")
 
 type AIUseCase interface {
 	GenerateIntialSuggestion(ctx context.Context, title string) (string, error)
