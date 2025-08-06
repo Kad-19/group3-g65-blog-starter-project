@@ -14,6 +14,8 @@ type Config struct {
 	RefreshTokenSecret string
 	AccessTokenExpiry  time.Duration
 	RefreshTokenExpiry time.Duration
+	GoogleClientID     string
+	GoogleClientSecret string
 }
 
 // AppConfig is the global config instance
@@ -30,18 +32,11 @@ func LoadConfig() {
 	accessSecret := os.Getenv("ACCESS_TOKEN_SECRET")
 	refreshSecret := os.Getenv("REFRESH_TOKEN_SECRET")
 
-	accessExpiryStr := os.Getenv("ACCESS_TOKEN_EXPIRY")
-	refreshExpiryStr := os.Getenv("REFRESH_TOKEN_EXPIRY")
+	accessExpiry := parseDuration(os.Getenv("ACCESS_TOKEN_EXPIRY"))
+	refreshExpiry := parseDuration(os.Getenv("REFRESH_TOKEN_EXPIRY"))
 
-	accessExpiry, err := time.ParseDuration(accessExpiryStr)
-	if err != nil {
-		log.Fatal("Invalid ACCESS_TOKEN_EXPIRY value")
-	}
-
-	refreshExpiry, err := time.ParseDuration(refreshExpiryStr)
-	if err != nil {
-		log.Fatal("Invalid REFRESH_TOKEN_EXPIRY value")
-	}
+	googleClientID := os.Getenv("GOOGLE_OAUTH_CLIENT_ID")
+	googleClientSecret := os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 
 	AppConfig = &Config{
 		DbName 			:   dbName,
@@ -49,5 +44,16 @@ func LoadConfig() {
 		RefreshTokenSecret: refreshSecret,
 		AccessTokenExpiry:  accessExpiry,
 		RefreshTokenExpiry: refreshExpiry,
+		GoogleClientID:     googleClientID,
+		GoogleClientSecret: googleClientSecret,
 	}
+}
+
+func parseDuration(value string) time.Duration {
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		log.Fatalf("Invalid duration(ACCESS_TOKEN_EXPIRY/REFRESH_TOKEN_EXPIRY) value: %s", value)
+		return 0
+	}
+	return duration
 }
