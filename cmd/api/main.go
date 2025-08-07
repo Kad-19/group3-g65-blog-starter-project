@@ -4,12 +4,13 @@ import (
 	"g3-g65-bsp/config"
 	"g3-g65-bsp/delivery/controller"
 	"g3-g65-bsp/delivery/route"
+	"g3-g65-bsp/infrastructure/ai"
 	"g3-g65-bsp/infrastructure/auth"
 	"g3-g65-bsp/infrastructure/database"
 	"g3-g65-bsp/infrastructure/email"
+	"g3-g65-bsp/infrastructure/image"
 	"g3-g65-bsp/repository"
 	"g3-g65-bsp/usecase"
-	"g3-g65-bsp/infrastructure/image"
 )
 
 func main() {
@@ -19,13 +20,11 @@ func main() {
 	accessSecret := config.AppConfig.AccessTokenSecret
 	refreshSecret := config.AppConfig.RefreshTokenSecret
 	accessExpiry := config.AppConfig.AccessTokenExpiry
-	refreshExpiry := config.AppConfig.RefreshTokenExpiry	
+	refreshExpiry := config.AppConfig.RefreshTokenExpiry
 
 	// Initialize MongoDB connection
-    db := database.InitMongoDB().Database(dbName)
-    blogCollection := db.Collection("blogs")
-
-   
+	db := database.InitMongoDB().Database(dbName)
+	blogCollection := db.Collection("blogs")
 
 	// Initialize repository, usecase, controller for authentication
 	authRepo := repository.NewUserRepository(db)
@@ -37,10 +36,10 @@ func main() {
 	authUsecase := usecase.NewAuthUsecase(authRepo, tokenRepo, jwt, unActiveUserRepo, emailService, passwordResetRepo)
 	authController := controller.NewAuthController(authUsecase, jwt)
 
-	 // Initialize repository, usecase, controller for blogs
-    blogRepo := repository.NewBlogRepository(blogCollection)
-    blogUsecase := usecase.NewBlogUsecase(blogRepo, authRepo)
-    blogController := controller.NewBlogController(blogUsecase)
+	// Initialize repository, usecase, controller for blogs
+	blogRepo := repository.NewBlogRepository(blogCollection)
+	blogUsecase := usecase.NewBlogUsecase(blogRepo, authRepo)
+	blogController := controller.NewBlogController(blogUsecase)
 
 	// Initialize interaction usecase and controller
 	interactionUsecase := usecase.NewInteractionUsecase(blogRepo, authRepo)
@@ -52,9 +51,12 @@ func main() {
 	userUsecase := usecase.NewUserUsecase(userRepo, imageUpload)
 	userController := controller.NewUserController(userUsecase)
 
+	aiservice := ai.NewGeminiService()
+	aiusecase := usecase.NewAIUsecaseImpl(aiservice)
+	aicontroller := controller.NewAIcontroller(aiusecase)
 
-    // Initialize router
-    r := route.NewRouter()
+	// Initialize router
+	r := route.NewRouter()
 	route.BlogRouter(r, blogController, jwt)
 	route.InteractionRouter(r, interactionController, jwt)
 
@@ -64,7 +66,10 @@ func main() {
 	// user management routes
 	route.UserRouter(r, userController, jwt)
 
-   // Start the server on port 8080
+	//ai features routes
+	route.AIRouter(r, aicontroller, jwt)
+
+	// Start the server on port 8080
 	if err := r.Run("localhost:8080"); err != nil {
 		panic("Failed to start server: " + err.Error())
 	}

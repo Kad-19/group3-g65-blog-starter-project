@@ -25,6 +25,7 @@ type UserRepository interface {
 	UpdateUserRole(ctx context.Context, role string, Email string) error
 	UpdateActiveStatus(ctx context.Context, email string) error
 	UpdateUserPassword(ctx context.Context, email string, newPasswordHash string) error
+	GetAllUsers(ctx context.Context, page int, limit int) ([]User, Pagination, error)
 }
 
 type UnactiveUserRepo interface {

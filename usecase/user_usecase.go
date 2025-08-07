@@ -69,4 +69,6 @@ func (upd *UserUsecase) ProfileUpdate(ctx context.Context, userid primitive.Obje
 	return nil
 }
 
-func (upd *UserUsecase) GetAllUsers(ctx context.Context) 
+func (upd *UserUsecase) GetAllUsers(ctx context.Context, page int, limit int) ([]domain.User, domain.Pagination, error) {
+	return upd.userRepo.GetAllUsers(ctx, page, limit)
+}

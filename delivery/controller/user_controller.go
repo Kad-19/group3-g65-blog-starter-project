@@ -4,6 +4,7 @@ import (
 	"context"
 	"g3-g65-bsp/domain"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,6 +16,11 @@ type UserController struct {
 
 type emailRequest struct {
 	Email string `json:"email" binding:"required,email"`
+}
+
+type AllusersResponse struct {
+	Allusers       []domain.User     `json:"users"`
+	PaginationData domain.Pagination `json:"pagination"`
 }
 
 func NewUserController(uuc domain.UserUsecase) *UserController {
@@ -88,4 +94,31 @@ func (uc *UserController) HandleUpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
+}
+
+func (uc *UserController) HandleGetAllUsers(c *gin.Context) {
+	var defaultPage = 1
+	var defaultLimit = 10
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", strconv.Itoa(defaultPage)))
+	if err != nil || page < 1 {
+		page = defaultPage
+	}
+
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
+	if err != nil || limit < 1 {
+		limit = defaultLimit
+	}
+
+	allusers, pagination, err := uc.userUsecase.GetAllUsers(c.Request.Context(), page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	res := AllusersResponse{
+		Allusers:       allusers,
+		PaginationData: pagination,
+	}
+	c.JSON(http.StatusOK, gin.H{"data": res})
 }

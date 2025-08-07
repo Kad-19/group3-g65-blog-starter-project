@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type UserRepository struct {
@@ -116,4 +117,31 @@ func (mr *UserRepository) UpdateUserPassword(ctx context.Context, email string, 
 		}
 		return nil
 	}
+}
+
+func (ur *UserRepository) GetAllUsers(ctx context.Context, page, limit int) ([]domain.User, domain.Pagination, error) {
+	setskip := int64((page - 1) * limit)
+	setlimit := int64(limit)
+
+	opts := options.Find().SetSkip(setskip).SetLimit(setlimit)
+
+	cursor, err := ur.collection.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, domain.Pagination{}, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []domain.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, domain.Pagination{}, err
+	}
+
+	total, _ := ur.collection.CountDocuments(ctx, bson.M{})
+	res := domain.Pagination{
+		Total: int(total),
+		Page:  page,
+		Limit: limit,
+	}
+
+	return users, res, nil
 }
