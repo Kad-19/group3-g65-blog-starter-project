@@ -7,3 +7,10 @@ type PasswordResetToken struct {
 	Token     string
 	ExpiresAt time.Time
 }
+
+
+type RefreshToken struct {
+	UserID    string
+	Token     string
+	ExpiresAt time.Time
+}

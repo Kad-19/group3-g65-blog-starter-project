@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"g3-g65-bsp/domain"
 	"io"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserUsecase struct {
@@ -52,7 +50,7 @@ func (upd *UserUsecase) Demote(ctx context.Context, Email string) error {
 	return nil
 }
 
-func (upd *UserUsecase) ProfileUpdate(ctx context.Context, userid primitive.ObjectID, bio string, contactinfo string, file io.Reader) error {
+func (upd *UserUsecase) ProfileUpdate(ctx context.Context, userid string, bio string, contactinfo string, file io.Reader) error {
 	user, err := upd.userRepo.FindByID(ctx, userid)
 	if err != nil {
 		return err
