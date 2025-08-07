@@ -14,6 +14,8 @@ func InteractionRouter (r *gin.Engine, interactionController *controller.Interac
     {
         interactionGroup.POST("/like/:id", interactionController.LikeBlog)
         interactionGroup.POST("/comment/:id", interactionController.CommentOnBlog)
+        interactionGroup.PUT("/comment/:id/:comment_id", interactionController.UpdateComment)
+        interactionGroup.DELETE("/comment/:id/:comment_id", interactionController.DeleteComment)
     }
 }
 

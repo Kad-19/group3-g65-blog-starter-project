@@ -360,4 +360,72 @@ func (r *mongoBlogRepository) AddComment(ctx context.Context, blogID string, com
     }
     return nil
 }
+func (r *mongoBlogRepository) GetCommentByID(ctx context.Context, blogID string, commentID string) (*domain.Comment, error) {
+    blogOid, err := primitive.ObjectIDFromHex(blogID)
+    if err != nil {
+        return nil, ErrBlogNotFound
+    }
+    commentOid, err := primitive.ObjectIDFromHex(commentID)
+    if err != nil {
+        return nil, errors.New("invalid comment ID")
+    }
+    filter := bson.M{"_id": blogOid, "comments.id": commentOid}
+    var model BlogModel
+    err = r.collection.FindOne(ctx, filter).Decode(&model)
+    if err == mongo.ErrNoDocuments {
+        return nil, ErrBlogNotFound
+    }
+    if err != nil {
+        return nil, err
+    }
+    for _, c := range model.Comments {
+        if c.ID == commentOid {
+            return c.ToDomain(), nil
+        }
+    }
+    return nil, errors.New("comment not found")
+}
 
+func (r *mongoBlogRepository) UpdateComment(ctx context.Context, blogID string, comment *domain.Comment) error {
+    blogOid, err := primitive.ObjectIDFromHex(blogID)
+    if err != nil {
+        return ErrBlogNotFound
+    }
+    commentOid, err := primitive.ObjectIDFromHex(comment.ID)
+    if err != nil {
+        return errors.New("invalid comment ID")
+    }
+    filter := bson.M{"_id": blogOid, "comments.id": commentOid}
+    update := bson.M{"$set": bson.M{
+        "comments.$.content":        comment.Content,
+    }}
+    result, err := r.collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        return err
+    }
+    if result.MatchedCount == 0 {
+        return ErrBlogNotFound
+    }
+    return nil
+}
+
+func (r *mongoBlogRepository) DeleteComment(ctx context.Context, blogID string, commentID string) error {
+    blogOid, err := primitive.ObjectIDFromHex(blogID)
+    if err != nil {
+        return ErrBlogNotFound
+    }
+    commentOid, err := primitive.ObjectIDFromHex(commentID)
+    if err != nil {
+        return errors.New("invalid comment ID")
+    }
+    filter := bson.M{"_id": blogOid}
+    update := bson.M{"$pull": bson.M{"comments": bson.M{"id": commentOid}}}
+    result, err := r.collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        return err
+    }
+    if result.MatchedCount == 0 {
+        return ErrBlogNotFound
+    }
+    return nil
+}

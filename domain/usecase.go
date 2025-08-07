@@ -37,6 +37,8 @@ type AuthUsecase interface {
 type InteractionUsecase interface {
 	LikeBlog(ctx context.Context, userID string, blogID string, preftype string) error
 	CommentOnBlog(ctx context.Context, userID string, blogID string, comment *Comment) error
+	UpdateComment(ctx context.Context, userID string, blogID string, commentID string, content string) error
+	DeleteComment(ctx context.Context, userID string, blogID string, commentID string) error
 }
 
 var ErrUnauthorized = errors.New("unauthorized action")

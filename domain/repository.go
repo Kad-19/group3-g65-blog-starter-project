@@ -15,6 +15,9 @@ type BlogRepository interface {
 	ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*Blog, *Pagination, error)
 	IncrementBlogViewCount(ctx context.Context, id string, blog *Blog) error
 	AddComment(ctx context.Context, blogID string, comment *Comment) error
+	UpdateComment(ctx context.Context, blogID string, comment *Comment) error
+	GetCommentByID(ctx context.Context, blogID string, commentID string) (*Comment, error)
+	DeleteComment(ctx context.Context, blogID string, commentID string) error
 }
 
 type UserRepository interface {

@@ -93,6 +93,35 @@ func (u *InteractionUsecase) CommentOnBlog(ctx context.Context, userID string, b
 	return nil
 }
 
+func (u *InteractionUsecase) UpdateComment(ctx context.Context, userID string, blogID string, commentID string, content string) error {
+	comment, err := u.blogRepo.GetCommentByID(ctx, blogID, commentID)
+	if err != nil {
+		return err
+	}
+	if comment.AuthorID != userID {
+		return domain.ErrUnauthorized
+	}
+	comment.Content = content
+	if err := u.blogRepo.UpdateComment(ctx, blogID, comment); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *InteractionUsecase) DeleteComment(ctx context.Context, userID string, blogID string, commentID string) error {
+	comment, err := u.blogRepo.GetCommentByID(ctx, blogID, commentID)
+	if err != nil {
+		return err
+	}
+	if comment.AuthorID != userID {
+		return domain.ErrUnauthorized
+	}
+	if err := u.blogRepo.DeleteComment(ctx, blogID, commentID); err != nil {
+		return err
+	}
+	return nil
+}
+
 func containsUser(users []string, userID string) bool {
     return slices.Contains(users, userID)
 }
@@ -106,3 +135,5 @@ func removeUser(users []string, userID string) []string {
     }
     return result
 }
+
+
