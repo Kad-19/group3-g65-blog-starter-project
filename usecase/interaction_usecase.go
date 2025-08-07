@@ -6,7 +6,6 @@ import (
 	"slices"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type InteractionUsecase struct {
@@ -71,11 +70,7 @@ func (u *InteractionUsecase) LikeBlog(ctx context.Context, userID string, blogID
 }
 
 func (u *InteractionUsecase) CommentOnBlog(ctx context.Context, userID string, blogID string, comment *domain.Comment) error {
-	objectID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return err
-	}
-	existingUser, err := u.userRepo.FindByID(ctx, objectID)
+	existingUser, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return err
 	}

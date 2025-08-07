@@ -5,7 +5,6 @@ import (
 	"g3-g65-bsp/domain"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 
@@ -19,12 +18,8 @@ func NewBlogUsecase(repo domain.BlogRepository, userRepo domain.UserRepository) 
 }
 
 func (u *blogUsecase) CreateBlog(ctx context.Context, blog *domain.Blog, userid string) (*domain.Blog, error) {
-    oid, err:= primitive.ObjectIDFromHex(userid)
-    if err != nil {
-        return nil, err
-    }
     
-    existingUser, err := u.userRepo.FindByID(ctx, oid)
+    existingUser, err := u.userRepo.FindByID(ctx, userid)
     if err != nil {
         return nil, err
     }
