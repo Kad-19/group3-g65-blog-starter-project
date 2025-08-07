@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserController struct {
@@ -30,7 +29,7 @@ func NewUserController(uuc domain.UserUsecase) *UserController {
 }
 
 func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string) error, successMessage string) {
-	var req emailRequest
+	var req EmailReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -59,15 +58,9 @@ func (uc *UserController) HandleUpdateUser(c *gin.Context) {
 		return
 	}
 
-	userIDStr, ok := userIDVal.(string)
+	userID, ok := userIDVal.(string)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
-		return
-	}
-
-	userID, err := primitive.ObjectIDFromHex(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ObjectID"})
 		return
 	}
 

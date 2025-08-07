@@ -45,6 +45,10 @@ func main() {
 	interactionUsecase := usecase.NewInteractionUsecase(blogRepo, authRepo)
 	interactionController := controller.NewInteractionController(interactionUsecase)
 
+	// Initialize OAuth usecase and controller
+	oauthUsecase := usecase.NewOAuthUsecase(authRepo, tokenRepo, jwt)
+	oauthController := controller.NewOAuthController(oauthUsecase)
+
 	// Initialize repository, usecase, controller for user management
 	imageUpload := image.NewCloudinaryService()
 	userRepo := repository.NewUserRepository(db)
@@ -62,6 +66,9 @@ func main() {
 
 	// Register authentication routes
 	route.AuthRouter(r, authController, jwt)
+
+	// Register OAuth routes
+	route.OAuthRouter(r, oauthController)
 
 	// user management routes
 	route.UserRouter(r, userController, jwt)
