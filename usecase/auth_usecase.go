@@ -9,8 +9,6 @@ import (
 	"g3-g65-bsp/infrastructure/email"
 	"g3-g65-bsp/utils"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AuthUsecase struct {
@@ -102,7 +100,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (strin
 		return "", "", 0, nil, errors.New("invalid credentials")
 	}
 
-	accessToken, err := uc.jwt.GenerateAccessToken(user.ID.Hex(), user.Role)
+	accessToken, err := uc.jwt.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		return "", "", 0, nil, errors.New("failed to generate token")
 	}
@@ -112,7 +110,15 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (strin
 		return "", "", 0, nil, errors.New("failed to generate refresh token")
 	}
 
-	if err := uc.tokenRepo.StoreRefreshToken(ctx, user.ID, refreshToken, time.Now().Add(uc.jwt.RefreshExpiry)); err != nil {
+	// Store the refresh token
+	expiry := time.Now().Add(uc.jwt.RefreshExpiry)
+	newRefreshTokenModel := &domain.RefreshToken{
+		UserID:    user.ID,
+		Token:     refreshToken,
+		ExpiresAt: expiry,
+	}
+
+	if err := uc.tokenRepo.StoreRefreshToken(ctx, newRefreshTokenModel); err != nil {
 		return "", "", 0, nil, errors.New("failed to store refresh token")
 	}
 
@@ -157,6 +163,12 @@ func (uc *AuthUsecase) ResendActivationEmail(ctx context.Context, email string) 
 	unActiveUser, err := uc.unactiveRepo.FindByEmailUnactive(ctx, email)
 	if err != nil {
 		return errors.New("user not found")
+	}
+
+	// Enforce a minimum time gap (e.g., 60 seconds) between resend requests
+	minGap := 60 * time.Second
+	if time.Since(unActiveUser.UpdatedAt) < minGap {
+		return errors.New("please wait before requesting another activation email")
 	}
 
 	if unActiveUser.ActivationTokenExpiry.Before(time.Now()) {
@@ -226,37 +238,39 @@ func (uc *AuthUsecase) ResetPassword(c context.Context, token, newPassword strin
 	uc.passRepo.Delete(c, token)
 	return nil
 }
-func (uc *AuthUsecase) RefreshTokens(ctx context.Context, refreshToken string) (string, string, int, error) {
+
+func (uc *AuthUsecase) RefreshTokens(ctx context.Context, refreshToken string) (string, int, error) {
 	// 1. Validate and delete the old refresh token
 	userID, err := uc.tokenRepo.FindAndDeleteRefreshToken(ctx, refreshToken)
 	if err != nil {
-		return "", "", 0, errors.New("invalid refresh token")
+		return "", 0, errors.New("invalid refresh token")
 	}
 
 	// 2. Get user details
 	user, err := uc.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return "", "", 0, errors.New("user not found")
-	}
-
-	// 3. Generate new tokens
-	newAccessToken, err := uc.jwt.GenerateAccessToken(user.ID.Hex(), user.Role)
-	if err != nil {
-		return "", "", 0, errors.New("failed to generate access token")
+		return "", 0, errors.New("user not found")
 	}
 
 	newRefreshToken, err := uc.jwt.GenerateRefreshToken()
 	if err != nil {
-		return "", "", 0, errors.New("failed to generate refresh token")
+		return "", 0, errors.New("failed to generate refresh token")
 	}
 
-	// 4. Store new refresh token
+	// 3. Store new refresh token
 	expiry := time.Now().Add(uc.jwt.RefreshExpiry)
-	if err := uc.tokenRepo.StoreRefreshToken(ctx, user.ID, newRefreshToken, expiry); err != nil {
-		return "", "", 0, errors.New("failed to store refresh token")
+
+	newRefreshTokenModel := &domain.RefreshToken{
+		UserID:    user.ID,
+		Token:     newRefreshToken,
+		ExpiresAt: expiry,
 	}
 
-	return newAccessToken, newRefreshToken, int(uc.jwt.AccessExpiry.Seconds()), nil
+	if err := uc.tokenRepo.StoreRefreshToken(ctx, newRefreshTokenModel); err != nil {
+		return "", 0, errors.New("failed to store refresh token")
+	}
+
+	return newRefreshToken, int(uc.jwt.AccessExpiry.Seconds()), nil
 }
 
 // Logout (single device)
@@ -266,6 +280,6 @@ func (uc *AuthUsecase) Logout(ctx context.Context, refreshToken string) error {
 }
 
 // LogoutAll (all devices)
-func (uc *AuthUsecase) LogoutAll(ctx context.Context, userID primitive.ObjectID) error {
+func (uc *AuthUsecase) LogoutAll(ctx context.Context, userID string) error {
 	return uc.tokenRepo.DeleteAllForUser(ctx, userID)
 }

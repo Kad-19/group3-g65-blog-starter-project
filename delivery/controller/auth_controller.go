@@ -4,10 +4,109 @@ import (
 	"g3-g65-bsp/domain"
 	"g3-g65-bsp/infrastructure/auth"
 	"net/http"
-
+	"time"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// UserDTO represents the user data transfer object
+type UserDTO struct {
+	ID           string 			`json:"id"`
+	Username     string             `json:"username" validate:"required,min=3,max=50"`
+	Email        string             `json:"email" validate:"required,email"`
+	Password 	 string             `json:"-"`
+	Role         string             `json:"role"`
+	Activated    bool               `json:"activated"`
+	Profile      UserProfileDTO      `json:"profile"`
+	CreatedAt    time.Time          `json:"created_at"`
+	UpdatedAt    time.Time          `json:"updated_at"`
+}
+
+// UserProfileDTO represents the user profile data transfer object
+type UserProfileDTO struct {
+	Bio               string `json:"bio" validate:"min=3,max=500"`
+	ProfilePictureURL string `json:"profile_picture_url"`
+	ContactInfo       string `json:"contact_information" validate:"max=100"`
+}
+
+// UnactivatedUserDTO represents a user who has not yet activated their account
+type UnactivatedUserDTO struct {
+	ID                    string 			`bson:"_id,omitempty" json:"id"`
+	Username              string             `bson:"username" json:"username" validate:"required,min=3,max=50"`
+	Email                 string             `bson:"email" json:"email" validate:"required,email"`
+	Password              string             `bson:"password" json:"-"`
+	Activated			  bool               `bson:"activated" json:"activated"`
+	ActivationToken       string             `bson:"activation_token,omitempty" json:"activation_token,omitempty"`
+	ActivationTokenExpiry *time.Time         `bson:"activation_token_expiry,omitempty" json:"activation_token_expiry,omitempty"`
+	CreatedAt             time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt             time.Time          `bson:"updated_at" json:"updated_at"`
+}
+
+// ConvertToDomain converts UserDTO to domain.User
+func (dto *UserDTO) ConvertToUserDomain() *domain.User {
+	return &domain.User{
+		ID:        dto.ID,
+		Username:  dto.Username,
+		Email:     dto.Email,
+		Password:  dto.Password,
+		Role:      dto.Role,
+		Activated: dto.Activated,
+		Profile: domain.UserProfile{
+			Bio:               dto.Profile.Bio,
+			ProfilePictureURL: dto.Profile.ProfilePictureURL,
+			ContactInfo:       dto.Profile.ContactInfo,
+		},
+		CreatedAt: dto.CreatedAt,
+		UpdatedAt: dto.UpdatedAt,
+	}
+}
+
+// ConvertToDomain converts UnactivatedUserDTO to domain.UnactivatedUser
+func (dto *UnactivatedUserDTO) ConvertToUnactivatedUserDomain() *domain.UnactivatedUser {
+	return &domain.UnactivatedUser{
+		ID:                    dto.ID,
+		Username:              dto.Username,
+		Email:                 dto.Email,
+		Password:              dto.Password,
+		Activated:             dto.Activated,
+		ActivationToken:       dto.ActivationToken,
+		ActivationTokenExpiry: dto.ActivationTokenExpiry,
+		CreatedAt:             dto.CreatedAt,
+		UpdatedAt:             dto.UpdatedAt,
+	}
+}
+
+// ConvertToDTO converts domain.User to UserDTO
+func ConvertToUserDTO(u *domain.User) *UserDTO {
+	return &UserDTO{
+		ID:        u.ID,
+		Username:  u.Username,
+		Email:     u.Email,
+		Role:      u.Role,
+		Activated: u.Activated,
+		Profile: UserProfileDTO{
+			Bio:               u.Profile.Bio,
+			ProfilePictureURL: u.Profile.ProfilePictureURL,
+			ContactInfo:       u.Profile.ContactInfo,
+		},
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+	}
+}
+
+// ConvertToDTO converts domain.UnactivatedUser to UnactivatedUserDTO
+func ConvertToUnactivatedUserDTO(u *domain.UnactivatedUser) *UnactivatedUserDTO {
+	return &UnactivatedUserDTO{
+		ID:                    u.ID,
+		Username:              u.Username,
+		Email:                 u.Email,
+		Password:              u.Password,
+		Activated:             u.Activated,
+		ActivationToken:       u.ActivationToken,
+		ActivationTokenExpiry: u.ActivationTokenExpiry,
+		CreatedAt:             u.CreatedAt,
+		UpdatedAt:             u.UpdatedAt,
+	}
+}
 
 // UserCreateRequest represents registration payload (DTO)
 type UserCreateRequest struct {
@@ -22,6 +121,19 @@ type UserLoginRequest struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
 
+type EmailReq struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type RefreshTokenRequest struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+
+type PasswordResetRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
+
 type AuthController struct {
 	authUsecase domain.AuthUsecase
 	jwt         *auth.JWT
@@ -29,19 +141,6 @@ type AuthController struct {
 
 func NewAuthController(uc domain.AuthUsecase, jwt *auth.JWT) *AuthController {
 	return &AuthController{authUsecase: uc, jwt: jwt}
-}
-
-type ActivatEmail struct {
-	Email string `json:"email" binding:"required,email"`
-}
-
-type ForgotEmail struct {
-	Email string `json:"email" binding:"required,email"`
-}
-
-type PasswordResetRequest struct {
-	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
 func (c *AuthController) Register(ctx *gin.Context) {
@@ -78,7 +177,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"expires_in":    expiresIn,
-		"user":          user,
+		"user":          ConvertToUserDTO(user),
 	})
 }
 
@@ -105,9 +204,7 @@ func (c *AuthController) ActivateUser(ctx *gin.Context) {
 }
 
 func (ac *AuthController) ResendActivationEmail(ctx *gin.Context) {
-	var req struct {
-		Email string `json:"email" binding:"required,email"`
-	}
+	var req EmailReq
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -124,7 +221,7 @@ func (ac *AuthController) ResendActivationEmail(ctx *gin.Context) {
 }
 
 func (ac *AuthController) ForgotPassword(ctx *gin.Context) {
-	var req ForgotEmail
+	var req EmailReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -156,29 +253,21 @@ func (ac *AuthController) ResetPassword(c *gin.Context) {
 }
 
 // Refresh Tokens
-func (c *AuthController) Refresh(ctx *gin.Context) {
-	if ctx.GetHeader("Authorization") == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
-	}
-
-	var req struct {
-		RefreshToken string `json:"refresh_token" binding:"required"`
-	}
+func (c *AuthController) RefreshAccessToken(ctx *gin.Context) {
+	var req RefreshTokenRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	accessToken, refreshToken, expiresIn, err := c.authUsecase.RefreshTokens(ctx.Request.Context(), req.RefreshToken)
+	refreshToken, expiresIn, err := c.authUsecase.RefreshTokens(ctx.Request.Context(), req.RefreshToken)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"expires_in":    expiresIn,
 	})
@@ -186,14 +275,7 @@ func (c *AuthController) Refresh(ctx *gin.Context) {
 
 // Logout (single device)
 func (c *AuthController) Logout(ctx *gin.Context) {
-	if ctx.GetHeader("Authorization") == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
-	}
-
-	var req struct {
-		RefreshToken string `json:"refresh_token" binding:"required"`
-	}
+	var req RefreshTokenRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -210,20 +292,15 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 
 // LogoutAll (all devices)
 func (c *AuthController) LogoutAll(ctx *gin.Context) {
-	if ctx.GetHeader("Authorization") == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-		return
-	}
-
 	userID, exists := ctx.Get("user_id")
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 		return
 	}
 
-	objID, err := primitive.ObjectIDFromHex(userID.(string))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+	objID := userID.(string)
+	if objID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user ID is required"})
 		return
 	}
 

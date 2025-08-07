@@ -2,12 +2,43 @@ package repository
 
 import (
 	"context"
+	"g3-g65-bsp/domain"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// RefreshTokenDTO is a Data Transfer Object for Refresh Tokens
+type RefreshTokenDTO struct {
+	UserID    primitive.ObjectID `bson:"user_id"`
+	Token     string              `bson:"token"`
+	ExpiresAt time.Time           `bson:"expires_at"`
+}
+
+// ConvertToDomain converts RefreshTokenDTO to domain.RefreshToken
+func (dto *RefreshTokenDTO) ConvertToDomain() *domain.RefreshToken {
+	return &domain.RefreshToken{
+		UserID:    dto.UserID.Hex(),
+		Token:     dto.Token,
+		ExpiresAt: dto.ExpiresAt,
+	}
+}
+
+// ConvertToDTO converts domain.RefreshToken to RefreshTokenDTO
+func ConvertToDTO(token *domain.RefreshToken) *RefreshTokenDTO {
+	userID, _ := primitive.ObjectIDFromHex(token.UserID)
+	return &RefreshTokenDTO{
+		UserID:    userID,
+		Token:     token.Token,
+		ExpiresAt: token.ExpiresAt,
+	}
+}
+
+type UserID struct {
+	ID primitive.ObjectID `bson:"user_id"`
+}
 
 type TokenRepository struct {
 	collection *mongo.Collection
@@ -19,27 +50,22 @@ func NewTokenRepository(db *mongo.Database) *TokenRepository {
 	}
 }
 
-func (r *TokenRepository) StoreRefreshToken(ctx context.Context, userID primitive.ObjectID, tokenHash string, expiresAt time.Time) error {
-	_, err := r.collection.InsertOne(ctx, bson.M{
-		"user_id":    userID,
-		"token_hash": tokenHash,
-		"expires_at": expiresAt,
-	})
+func (r *TokenRepository) StoreRefreshToken(ctx context.Context, refreshToken *domain.RefreshToken) error {
+	_, err := r.collection.InsertOne(ctx, ConvertToDTO(refreshToken))
 	return err
 }
 
 // For single device logout
-func (r *TokenRepository) FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (primitive.ObjectID, error) {
-	var result struct {
-		UserID primitive.ObjectID `bson:"user_id"`
-	}
-	
+func (r *TokenRepository) FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (string, error) {
+	var result UserID
+
 	err := r.collection.FindOneAndDelete(ctx, bson.M{"token_hash": tokenHash}).Decode(&result)
-	return result.UserID, err
+	return result.ID.Hex(), err
 }
 
 // For multiple device logout
-func (r *TokenRepository) DeleteAllForUser(ctx context.Context, userID primitive.ObjectID) error {
-	_, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userID})
+func (r *TokenRepository) DeleteAllForUser(ctx context.Context, userID string) error {
+	userIDObj,_ := primitive.ObjectIDFromHex(userID)
+	_, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userIDObj})
 	return err
 }

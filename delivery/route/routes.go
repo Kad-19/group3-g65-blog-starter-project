@@ -30,10 +30,18 @@ func AuthRouter(r *gin.Engine, authController *controller.AuthController, jwt *a
         authGroup.POST("/reset-password", authController.ResetPassword)
         authGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
         {
-            authGroup.POST("/refresh", authController.Refresh)
+            authGroup.POST("/refresh_token", authController.RefreshAccessToken)
             authGroup.POST("/logout", authController.Logout)      // Single device
             authGroup.POST("/logout-all", authController.LogoutAll) // All devices
         }
+    }
+}
+
+func OAuthRouter(r *gin.Engine, oauthController *controller.OAuthController) {
+    oauthGroup := r.Group("/auth/google")
+    {
+        oauthGroup.GET("/login", oauthController.HandleGoogleLogin)
+        oauthGroup.GET("/callback", oauthController.HandleGoogleCallback)
     }
 }
 

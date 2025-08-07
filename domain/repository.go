@@ -2,9 +2,6 @@ package domain
 
 import (
 	"context"
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type BlogRepository interface {
@@ -19,15 +16,11 @@ type BlogRepository interface {
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
-	FindByID(ctx context.Context, id primitive.ObjectID) (*User, error)
+	FindByID(ctx context.Context, id string) (*User, error)
 	UpdateUserProfile(ctx context.Context, bio string, contactInfo string, imagePath string, Email string) error
 	UpdateUserRole(ctx context.Context, role string, Email string) error
 	UpdateActiveStatus(ctx context.Context, email string) error
 	UpdateUserPassword(ctx context.Context, email string, newPasswordHash string) error
-	UpdateActivateToken(ctx context.Context, email string) error
-	UpdateActivateTokenExpiration(ctx context.Context, email string, expiration time.Time) error
-	UpdateResetPasswordToken(ctx context.Context, email string) error
-	UpdateResetPasswordTokenExpiration(ctx context.Context, email string, expiration time.Time) error
 }
 
 type UnactiveUserRepo interface {
@@ -43,7 +36,7 @@ type PasswordResetRepository interface {
 }
 
 type TokenRepository interface {
-	StoreRefreshToken(ctx context.Context, userID primitive.ObjectID, tokenHash string, expiresAt time.Time) error
-	FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (primitive.ObjectID, error)
-	DeleteAllForUser(ctx context.Context, userID primitive.ObjectID) error
+	StoreRefreshToken(ctx context.Context, accessToken *RefreshToken) error
+	FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (string, error)
+	DeleteAllForUser(ctx context.Context, userID string) error
 }
