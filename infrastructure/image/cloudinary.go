@@ -15,9 +15,9 @@ type CloudinaryService struct {
 }
 
 func NewCloudinaryService() *CloudinaryService {
-	cloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
-	apiKey := os.Getenv("CLOUDINARY_API_KEY")
-	apiSecret := os.Getenv("CLOUDINARY_API_SECRET")
+	cloudName := os.Getenv("CLOUD_NAME")
+	apiKey := os.Getenv("API_KEY")
+	apiSecret := os.Getenv("API_SECERT")
 
 	cls, err := cloudinary.NewFromParams(cloudName, apiKey, apiSecret)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"g3-g65-bsp/domain"
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -108,78 +109,6 @@ func (mr *UserRepository) UpdateUserPassword(ctx context.Context, email string, 
 	}
 
 	if res, err := mr.collection.UpdateOne(ctx, filter, update); err != nil {
-		return err
-	} else {
-		if res.MatchedCount == 0 {
-			return errors.New("user not found")
-		}
-		return nil
-	}
-}
-
-func (r *UserRepository) UpdateActivateToken(ctx context.Context, email string) error {
-	filter := bson.M{"email": email}
-	update := bson.M{
-		"$set": bson.M{
-			"activate_token": "",
-		},
-	}
-
-	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
-		return err
-	} else {
-		if res.MatchedCount == 0 {
-			return errors.New("user not found")
-		}
-		return nil
-	}
-}
-
-func (r *UserRepository) UpdateActivateTokenExpiration(ctx context.Context, email string, expiration time.Time) error {
-	filter := bson.M{"email": email}
-	update := bson.M{
-		"$set": bson.M{
-			"activate_token_expiration": expiration,
-		},
-	}
-
-	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
-		return err
-	} else {
-		if res.MatchedCount == 0 {
-			return errors.New("user not found")
-		}
-		return nil
-	}
-}
-
-func (r *UserRepository) UpdateResetPasswordToken(ctx context.Context, email string) error {
-	filter := bson.M{"email": email}
-	update := bson.M{
-		"$set": bson.M{
-			"reset_password_token": "",
-		},
-	}
-
-	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
-		return err
-	} else {
-		if res.MatchedCount == 0 {
-			return errors.New("user not found")
-		}
-		return nil
-	}
-}
-
-func (r *UserRepository) UpdateResetPasswordTokenExpiration(ctx context.Context, email string, expiration time.Time) error {
-	filter := bson.M{"email": email}
-	update := bson.M{
-		"$set": bson.M{
-			"reset_password_token_expiration": expiration,
-		},
-	}
-
-	if res, err := r.collection.UpdateOne(ctx, filter, update); err != nil {
 		return err
 	} else {
 		if res.MatchedCount == 0 {

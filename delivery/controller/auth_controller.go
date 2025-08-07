@@ -101,7 +101,10 @@ func (c *AuthController) ActivateUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "account activated successfully"})
+	ctx.HTML(http.StatusOK, "activation_success.html", gin.H{
+		"email": email,
+	})
+
 }
 
 func (ac *AuthController) ResendActivationEmail(ctx *gin.Context) {
@@ -135,8 +138,7 @@ func (ac *AuthController) ForgotPassword(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": err.Error()})
 		return
 	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "if an account exists, a password reset link has been sent"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "reset is sent to email successfully"})
 }
 
 func (ac *AuthController) ResetPassword(c *gin.Context) {

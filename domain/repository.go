@@ -24,10 +24,6 @@ type UserRepository interface {
 	UpdateUserRole(ctx context.Context, role string, Email string) error
 	UpdateActiveStatus(ctx context.Context, email string) error
 	UpdateUserPassword(ctx context.Context, email string, newPasswordHash string) error
-	UpdateActivateToken(ctx context.Context, email string) error
-	UpdateActivateTokenExpiration(ctx context.Context, email string, expiration time.Time) error
-	UpdateResetPasswordToken(ctx context.Context, email string) error
-	UpdateResetPasswordTokenExpiration(ctx context.Context, email string, expiration time.Time) error
 }
 
 type UnactiveUserRepo interface {

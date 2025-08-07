@@ -68,3 +68,5 @@ func (upd *UserUsecase) ProfileUpdate(ctx context.Context, userid primitive.Obje
 	}
 	return nil
 }
+
+func (upd *UserUsecase) GetAllUsers(ctx context.Context) 

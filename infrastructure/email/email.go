@@ -46,12 +46,12 @@ func (s *EmailService) SendActivationEmail(toEmail, activationLink string) error
 	return nil
 }
 
-func (s *EmailService) SendPasswordResetEmail(toEmail, resetLink string) error {
+func (s *EmailService) SendPasswordResetEmail(toEmail, resetToken string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.fromEmail)
 	m.SetHeader("To", toEmail)
 	m.SetHeader("Subject", "Password Reset Request")
-	m.SetBody("text/html", fmt.Sprintf("Hello,<br><br>You requested a password reset. Please click the following link to set a new password:<br><br><a href='%s'>Reset My Password</a><br><br>This link will expire in 1 hour.<br><br>If you did not request this, please ignore this email.", resetLink))
+	m.SetBody("text/html", fmt.Sprintf("Hello,<br><br>You requested a password reset. Please use the following token to set a new password:<br><br><b>%s</b><br><br>This token will expire in 1 hour.<br><br>If you did not request this, please ignore this email.", resetToken))
 	if err := s.dialer.DialAndSend(m); err != nil {
 		return fmt.Errorf("failed to send password reset email: %w", err)
 	}

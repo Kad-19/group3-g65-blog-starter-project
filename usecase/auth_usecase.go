@@ -61,7 +61,6 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
-
 	user := &domain.UnactivatedUser{
 		Username:              username,
 		Email:                 email,
@@ -77,14 +76,14 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
-	activationLink := "http://localhost:8080/activate?token=" + user.ActivationToken + "&email=" + user.Email
+	activationLink := "http://localhost:8080/auth/activate?token=" + user.ActivationToken + "&email=" + user.Email
 	go func() {
 		err := uc.emailService.SendActivationEmail(user.Email, activationLink)
 		if err != nil {
 			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
-	
+
 	return nil
 }
 
@@ -185,17 +184,14 @@ func (uc *AuthUsecase) ForgotPassword(ctx context.Context, email string) error {
 		return err
 	}
 
-	// resetLink := "http://your-frontend-domain.com/reset-password?token=" + tokenValue
-	resetLink := ""
 	go func() {
-		err := uc.emailService.SendPasswordResetEmail(user.Email, resetLink)
+		err := uc.emailService.SendPasswordResetEmail(user.Email, password_token.Token)
 		if err != nil {
-			// Log the error.
-			// fmt.Printf("Failed to send password reset email: %v\n", err)
+			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
 
-	return errors.New("if an account exists for this email, a password reset link will be sent")
+	return nil
 }
 
 func (uc *AuthUsecase) ResetPassword(c context.Context, token, newPassword string) error {

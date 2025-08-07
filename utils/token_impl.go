@@ -21,19 +21,15 @@ func GenerateRandomToken() (string, *time.Time, error) {
 }
 
 func CreateResetToken(email string, expiryDuration time.Duration) (*domain.PasswordResetToken, error) {
-	// Generate a 32-byte long token (64 hex characters).
 	tokenValue, expiry, err := GenerateRandomToken()
 	if err != nil {
 		return &domain.PasswordResetToken{}, fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	// Create the token object with an expiration time.
-	// This is important for security to prevent tokens from being valid indefinitely.
 	newToken := domain.PasswordResetToken{
 		Email:     email,
 		Token:     tokenValue,
 		ExpiresAt: *expiry,
 	}
-	// Here you would typically save the token to your database.
 	return &newToken, nil
 }
