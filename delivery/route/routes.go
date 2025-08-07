@@ -8,15 +8,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func BlogRouter(r *gin.Engine, blogController *controller.BlogController) {
-	blogGroup := r.Group("/blogs")
-	{
-		blogGroup.POST("/", blogController.CreateBlog)
-		blogGroup.GET("/", blogController.ListBlogs)
-		blogGroup.GET(":id", blogController.GetBlogByID)
-		blogGroup.PUT(":id", blogController.UpdateBlog)
-		blogGroup.DELETE(":id", blogController.DeleteBlog)
-	}
+func InteractionRouter (r *gin.Engine, interactionController *controller.InteractionController, jwt *auth.JWT) {
+    interactionGroup := r.Group("/blogs")
+    interactionGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
+    {
+        interactionGroup.POST("/like/:id", interactionController.LikeBlog)
+        interactionGroup.POST("/comment/:id", interactionController.CommentOnBlog)
+    }
+}
+
+func BlogRouter(r *gin.Engine, blogController *controller.BlogController, jwt *auth.JWT) {
+    blogGroup := r.Group("/blogs")
+    blogGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
+    {
+        blogGroup.POST("/", blogController.CreateBlog)
+        blogGroup.GET("/", blogController.ListBlogs)
+        blogGroup.GET(":id", blogController.GetBlogByID)
+        blogGroup.PUT(":id", blogController.UpdateBlog)
+        blogGroup.DELETE(":id", blogController.DeleteBlog)
+    }
 }
 
 func AuthRouter(r *gin.Engine, authController *controller.AuthController, jwt *auth.JWT) {

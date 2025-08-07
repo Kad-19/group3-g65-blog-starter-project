@@ -25,10 +25,7 @@ func main() {
     db := database.InitMongoDB().Database(dbName)
     blogCollection := db.Collection("blogs")
 
-    // Initialize repository, usecase, controller for blogs
-    blogRepo := repository.NewBlogRepository(blogCollection)
-    blogUsecase := usecase.NewBlogUsecase(blogRepo)
-    blogController := controller.NewBlogController(blogUsecase)
+   
 
 	// Initialize repository, usecase, controller for authentication
 	authRepo := repository.NewUserRepository(db)
@@ -40,6 +37,15 @@ func main() {
 	authUsecase := usecase.NewAuthUsecase(authRepo, tokenRepo, jwt, unActiveUserRepo, emailService, passwordResetRepo)
 	authController := controller.NewAuthController(authUsecase, jwt)
 
+	 // Initialize repository, usecase, controller for blogs
+    blogRepo := repository.NewBlogRepository(blogCollection)
+    blogUsecase := usecase.NewBlogUsecase(blogRepo, authRepo)
+    blogController := controller.NewBlogController(blogUsecase)
+
+	// Initialize interaction usecase and controller
+	interactionUsecase := usecase.NewInteractionUsecase(blogRepo, authRepo)
+	interactionController := controller.NewInteractionController(interactionUsecase)
+
 	// Initialize repository, usecase, controller for user management
 	imageUpload := image.NewCloudinaryService()
 	userRepo := repository.NewUserRepository(db)
@@ -49,7 +55,8 @@ func main() {
 
     // Initialize router
     r := route.NewRouter()
-	route.BlogRouter(r, blogController)
+	route.BlogRouter(r, blogController, jwt)
+	route.InteractionRouter(r, interactionController, jwt)
 
 	// Register authentication routes
 	route.AuthRouter(r, authController, jwt)

@@ -10,15 +10,16 @@ import (
     "github.com/gin-gonic/gin"
 )
 
+
 // BlogDTO is a data transfer object for Blog with JSON restrictions
 type BlogDTO struct {
     ID        string        `json:"id,omitempty"`
-    AuthorID  string        `json:"author_id" binding:"required"`
-    AuthorUsername string `json:"author_username" binding:"required"`
+    AuthorID  string        `json:"author_id"`
+    AuthorUsername string `json:"author_username"`
     Title     string        `json:"title" binding:"required"`
     Content   string        `json:"content" binding:"required"`
     Tags      []string      `json:"tags"`
-    Metrics   MetricsDTO    `json:"metrics"`
+    Metrics   *MetricsDTO    `json:"metrics"`
     Comments  []CommentDTO  `json:"comments"`
     CreatedAt *time.Time    `json:"created_at,omitempty"`
     UpdatedAt *time.Time    `json:"updated_at,omitempty"`
@@ -26,7 +27,8 @@ type BlogDTO struct {
 
 type MetricsDTO struct {
     ViewCount int      `json:"view_count"`
-    Likes     LikesDTO `json:"likes"`
+    Likes     *LikesDTO `json:"likes"`
+    Dislikes  *LikesDTO `json:"dislikes"`
 }
 
 type LikesDTO struct {
@@ -36,53 +38,19 @@ type LikesDTO struct {
 
 type CommentDTO struct {
     ID             string     `json:"id,omitempty"`
-    AuthorID       string     `json:"author_id" binding:"required"`
+    AuthorID       string     `json:"author_id"`
     AuthorUsername string     `json:"author_username"`
-    Content        string     `json:"content" binding:"required"`
+    Content        string     `json:"content"`
     CreatedAt      *time.Time `json:"created_at,omitempty"`
 }
 
 
 // ConvertToDomain converts BlogDTO to domain.Blog
 func (dto *BlogDTO) ConvertToDomain() *domain.Blog {
-    comments := make([]domain.Comment, len(dto.Comments))
-    for i, c := range dto.Comments {
-        var createdAt time.Time
-        if c.CreatedAt != nil {
-            createdAt = *c.CreatedAt
-        }
-        comments[i] = domain.Comment{
-            ID:             c.ID,
-            AuthorID:       c.AuthorID,
-            AuthorUsername: c.AuthorUsername,
-            Content:        c.Content,
-            CreatedAt:      createdAt,
-        }
-    }
-    var createdAt, updatedAt time.Time
-    if dto.CreatedAt != nil {
-        createdAt = *dto.CreatedAt
-    }
-    if dto.UpdatedAt != nil {
-        updatedAt = *dto.UpdatedAt
-    }
     return &domain.Blog{
-        ID:        dto.ID,
-        AuthorID:  dto.AuthorID,
-        AuthorUsername: dto.AuthorUsername,
         Title:     dto.Title,
         Content:   dto.Content,
         Tags:      dto.Tags,
-        Metrics: domain.Metrics{
-            ViewCount: dto.Metrics.ViewCount,
-            Likes: domain.Likes{
-                Count: dto.Metrics.Likes.Count,
-                Users: dto.Metrics.Likes.Users,
-            },
-        },
-        Comments:  comments,
-        CreatedAt: createdAt,
-        UpdatedAt: updatedAt,
     }
 }
 
@@ -96,7 +64,7 @@ func ConvertFromDomain(blog *domain.Blog) *BlogDTO {
             AuthorID:       c.AuthorID,
             AuthorUsername: c.AuthorUsername,
             Content:        c.Content,
-            CreatedAt:      &createdAt,
+            CreatedAt:      createdAt,
         }
     }
     createdAt := blog.CreatedAt
@@ -108,16 +76,20 @@ func ConvertFromDomain(blog *domain.Blog) *BlogDTO {
         Title:     blog.Title,
         Content:   blog.Content,
         Tags:      blog.Tags,
-        Metrics: MetricsDTO{
+        Metrics: &MetricsDTO{
             ViewCount: blog.Metrics.ViewCount,
-            Likes: LikesDTO{
+            Likes: &LikesDTO{
                 Count: blog.Metrics.Likes.Count,
                 Users: blog.Metrics.Likes.Users,
             },
+            Dislikes: &LikesDTO{
+                Count: blog.Metrics.Dislikes.Count,
+                Users: blog.Metrics.Dislikes.Users,
+            },
         },
         Comments:  comments,
-        CreatedAt: &createdAt,
-        UpdatedAt: &updatedAt,
+        CreatedAt: createdAt,
+        UpdatedAt: updatedAt,
     }
 }
 
@@ -130,18 +102,21 @@ func NewBlogController(blogUsecase domain.BlogUsecase) *BlogController {
 }
 
 func (c *BlogController) CreateBlog(ctx *gin.Context) {
+    userid := ctx.GetString("user_id")
+    if userid == "" {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+    }
     var blog BlogDTO
     if err := ctx.ShouldBindJSON(&blog); err != nil {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
         return
     }
-    id, err := c.blogUsecase.CreateBlog(ctx, blog.ConvertToDomain())
+    newBlog, err := c.blogUsecase.CreateBlog(ctx, blog.ConvertToDomain(), userid)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
-    blog.ID = id
-    ctx.JSON(http.StatusCreated, blog)
+    ctx.JSON(http.StatusCreated, ConvertFromDomain(newBlog))
 }
 
 func (c *BlogController) GetBlogByID(ctx *gin.Context) {
@@ -155,19 +130,23 @@ func (c *BlogController) GetBlogByID(ctx *gin.Context) {
 }
 
 func (c *BlogController) UpdateBlog(ctx *gin.Context) {
+    userid, ok := ctx.Get("user_id"); if !ok {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+        return
+    }
     id := ctx.Param("id")
+
     var blog BlogDTO
     if err := ctx.ShouldBindJSON(&blog); err != nil {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
         return
     }
-    blog.ID = id
-    err := c.blogUsecase.UpdateBlog(ctx, blog.ConvertToDomain())
+    updatedBlog, err := c.blogUsecase.UpdateBlog(ctx, blog.ConvertToDomain(), userid.(string), id)
     if err != nil {
-        ctx.JSON(http.StatusNotFound, gin.H{"error": "blog not found"})
+        ctx.JSON(http.StatusNotFound, gin.H{"error": "blog not found " + err.Error()})
         return
     }
-    ctx.JSON(http.StatusOK, blog)
+    ctx.JSON(http.StatusOK, ConvertFromDomain(updatedBlog))
 }
 
 func (c *BlogController) DeleteBlog(ctx *gin.Context) {
