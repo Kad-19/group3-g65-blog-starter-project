@@ -257,21 +257,27 @@ func (ac *AuthController) ResetPassword(c *gin.Context) {
 
 // Refresh Tokens
 func (c *AuthController) RefreshAccessToken(ctx *gin.Context) {
+	// Accept refresh token from either header or JSON body
 	var req RefreshTokenRequest
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	refreshToken := ctx.GetHeader("X-Refresh-Token")
+	if refreshToken == "" {
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "refresh token is required"})
+			return
+		}
+		refreshToken = req.RefreshToken
 	}
 
-	refreshToken, expiresIn, err := c.authUsecase.RefreshTokens(ctx.Request.Context(), req.RefreshToken)
+	accessToken, refreshTokenNew, expiresIn, err := c.authUsecase.RefreshTokens(ctx.Request.Context(), refreshToken)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"refresh_token": refreshToken,
+		"access_token":  accessToken,
+		"refresh_token": refreshTokenNew,
 		"expires_in":    expiresIn,
 	})
 }

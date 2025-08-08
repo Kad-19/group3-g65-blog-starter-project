@@ -59,6 +59,7 @@ func ConvertToUserDTO(u *domain.User) *UserDTO {
 		ID:        id,
 		Username:  u.Username,
 		Email:     u.Email,
+		Password:  u.Password,
 		Role:      u.Role,
 		Activated: u.Activated,
 		Profile: UserProfileDTO{

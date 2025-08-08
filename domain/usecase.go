@@ -26,7 +26,7 @@ type UserUsecase interface {
 type AuthUsecase interface {
 	Register(ctx context.Context, email, username, password string) error
 	Login(ctx context.Context, email, password string) (string, string, int, *User, error)
-	RefreshTokens(ctx context.Context, refreshToken string) (string, int, error)
+	RefreshTokens(ctx context.Context, refreshToken string) (string, string, int, error)
 	Logout(ctx context.Context, refreshToken string) error
 	LogoutAll(ctx context.Context, userID string) error
 	ActivateUser(ctx context.Context, token, email string) error
@@ -42,6 +42,8 @@ type OAuthUsecase interface {
 type InteractionUsecase interface {
 	LikeBlog(ctx context.Context, userID string, blogID string, preftype string) error
 	CommentOnBlog(ctx context.Context, userID string, blogID string, comment *Comment) error
+	UpdateComment(ctx context.Context, userID string, blogID string, commentID string, content string) error
+	DeleteComment(ctx context.Context, userID string, blogID string, commentID string) error
 }
 
 var ErrUnauthorized = errors.New("unauthorized action")

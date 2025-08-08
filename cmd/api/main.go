@@ -4,6 +4,7 @@ import (
 	"g3-g65-bsp/config"
 	"g3-g65-bsp/delivery/controller"
 	"g3-g65-bsp/delivery/route"
+	"g3-g65-bsp/infrastructure/cache"
 	"g3-g65-bsp/infrastructure/ai"
 	"g3-g65-bsp/infrastructure/auth"
 	"g3-g65-bsp/infrastructure/database"
@@ -11,6 +12,7 @@ import (
 	"g3-g65-bsp/infrastructure/image"
 	"g3-g65-bsp/repository"
 	"g3-g65-bsp/usecase"
+	"time"
 )
 
 func main() {
@@ -55,13 +57,18 @@ func main() {
 	userUsecase := usecase.NewUserUsecase(userRepo, imageUpload)
 	userController := controller.NewUserController(userUsecase)
 
+
+	// Initialize Cache
+	cacheService := cache.NewInMemoryCache(5*time.Minute, 10*time.Minute)
+	
+
 	aiservice := ai.NewGeminiService()
 	aiusecase := usecase.NewAIUsecaseImpl(aiservice)
 	aicontroller := controller.NewAIcontroller(aiusecase)
 
-	// Initialize router
-	r := route.NewRouter()
-	route.BlogRouter(r, blogController, jwt)
+    // Initialize router
+    r := route.NewRouter()
+	route.BlogRouter(r, blogController, jwt, &cacheService)
 	route.InteractionRouter(r, interactionController, jwt)
 
 	// Register authentication routes

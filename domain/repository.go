@@ -12,6 +12,9 @@ type BlogRepository interface {
 	ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*Blog, *Pagination, error)
 	IncrementBlogViewCount(ctx context.Context, id string, blog *Blog) error
 	AddComment(ctx context.Context, blogID string, comment *Comment) error
+	UpdateComment(ctx context.Context, blogID string, comment *Comment) error
+	GetCommentByID(ctx context.Context, blogID string, commentID string) (*Comment, error)
+	DeleteComment(ctx context.Context, blogID string, commentID string) error
 }
 
 type UserRepository interface {
@@ -39,7 +42,8 @@ type PasswordResetRepository interface {
 
 type TokenRepository interface {
 	StoreRefreshToken(ctx context.Context, accessToken *RefreshToken) error
-	FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (string, error)
+	FindRefreshToken(ctx context.Context, token string) (*RefreshToken, error)
+	DeleteRefreshToken(ctx context.Context, token string) (error)
 	DeleteAllForUser(ctx context.Context, userID string) error
 }
 
