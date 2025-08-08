@@ -42,7 +42,8 @@ func main() {
 	authController := controller.NewAuthController(authUsecase, jwt)
 
 	// Initialize repository, usecase, controller for blogs
-	blogRepo := repository.NewBlogRepository(blogCollection)
+	repoCacheService := cache.NewInMemoryCache(5*time.Minute, 10*time.Minute)
+	blogRepo := repository.NewBlogRepository(blogCollection, repoCacheService)
 	blogUsecase := usecase.NewBlogUsecase(blogRepo, authRepo)
 	blogController := controller.NewBlogController(blogUsecase)
 

@@ -32,8 +32,8 @@ func BlogRouter(r *gin.Engine, blogController *controller.BlogController, jwt *a
     blogGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
     {
         blogGroup.POST("/", tollbooth_gin.LimitHandler(contentCreationLimiter), blogController.CreateBlog)
-        blogGroup.GET("/", cachingMiddleware, tollbooth_gin.LimitHandler(contentReadLimiter), blogController.ListBlogs)
-        blogGroup.GET(":id", cachingMiddleware, tollbooth_gin.LimitHandler(contentReadLimiter), blogController.GetBlogByID)
+        blogGroup.GET("/", tollbooth_gin.LimitHandler(contentReadLimiter), cachingMiddleware, blogController.ListBlogs)
+        blogGroup.GET(":id", tollbooth_gin.LimitHandler(contentReadLimiter), blogController.GetBlogByID)
         blogGroup.PUT(":id", tollbooth_gin.LimitHandler(contentCreationLimiter), revalidateMiddleware, blogController.UpdateBlog)
         blogGroup.DELETE(":id", tollbooth_gin.LimitHandler(contentCreationLimiter), revalidateMiddleware, blogController.DeleteBlog)
     }

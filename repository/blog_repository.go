@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+
 // Blog model in repository package
 
 type BlogModel struct {
@@ -165,14 +166,6 @@ func (m *BlogModel) FromDomain(blog *domain.Blog) {
 
 type mongoBlogRepository struct {
     collection *mongo.Collection
-}
-
-// ErrBlogNotFound is returned when a blog is not found in the repository
-var ErrBlogNotFound = errors.New("blog not found")
-
-// NewBlogRepository returns a MongoDB implementation of BlogRepository
-func NewBlogRepository(collection *mongo.Collection) domain.BlogRepository {
-    return &mongoBlogRepository{collection: collection}
 }
 
 func (r *mongoBlogRepository) CreateBlog(ctx context.Context, blog *domain.Blog) (string, error) {
