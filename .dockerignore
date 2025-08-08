@@ -1,0 +1,19 @@
+# Ignore version control files
+.git
+.github
+
+# Ignore local environment files and configs
+.vscode
+*.env.local
+
+# Ignore test files
+tests/
+
+# Ignore markdown and other documentation
+*.md
+Makefile
+render.yaml
+openapi.yaml
+
+# Ignore build artifacts
+*.exe
