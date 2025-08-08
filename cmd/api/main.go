@@ -4,15 +4,18 @@ import (
 	"g3-g65-bsp/config"
 	"g3-g65-bsp/delivery/controller"
 	"g3-g65-bsp/delivery/route"
-	"g3-g65-bsp/infrastructure/cache"
 	"g3-g65-bsp/infrastructure/ai"
 	"g3-g65-bsp/infrastructure/auth"
+	"g3-g65-bsp/infrastructure/cache"
 	"g3-g65-bsp/infrastructure/database"
 	"g3-g65-bsp/infrastructure/email"
 	"g3-g65-bsp/infrastructure/image"
 	"g3-g65-bsp/repository"
 	"g3-g65-bsp/usecase"
 	"time"
+
+	"github.com/didip/tollbooth/v7"
+	"github.com/didip/tollbooth/v7/limiter"
 )
 
 func main() {
@@ -68,20 +71,23 @@ func main() {
 
     // Initialize router
     r := route.NewRouter()
-	route.BlogRouter(r, blogController, jwt, &cacheService)
-	route.InteractionRouter(r, interactionController, jwt)
+	contentCreationLimiter := tollbooth.NewLimiter(0.5, &limiter.ExpirableOptions{DefaultExpirationTTL: time.Hour})
+	contentReadLimiter := tollbooth.NewLimiter(1, &limiter.ExpirableOptions{DefaultExpirationTTL: time.Second})
+	route.BlogRouter(r, blogController, jwt, &cacheService, contentCreationLimiter, contentReadLimiter)
+	route.InteractionRouter(r, interactionController, jwt, contentCreationLimiter)
 
 	// Register authentication routes
-	route.AuthRouter(r, authController, jwt)
+	authLimiter := tollbooth.NewLimiter(0.16, &limiter.ExpirableOptions{DefaultExpirationTTL: time.Minute})
+	route.AuthRouter(r, authController, jwt, authLimiter)
 
 	// Register OAuth routes
-	route.OAuthRouter(r, oauthController)
+	route.OAuthRouter(r, oauthController, authLimiter)
 
 	// user management routes
-	route.UserRouter(r, userController, jwt)
+	route.UserRouter(r, userController, jwt, contentCreationLimiter, contentReadLimiter)
 
 	//ai features routes
-	route.AIRouter(r, aicontroller, jwt)
+	route.AIRouter(r, aicontroller, jwt, contentCreationLimiter)
 
 	// Start the server on port 8080
 	if err := r.Run("localhost:8080"); err != nil {
