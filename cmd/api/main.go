@@ -4,6 +4,7 @@ import (
 	"g3-g65-bsp/config"
 	"g3-g65-bsp/delivery/controller"
 	"g3-g65-bsp/delivery/route"
+	"g3-g65-bsp/infrastructure"
 	"g3-g65-bsp/infrastructure/ai"
 	"g3-g65-bsp/infrastructure/auth"
 	"g3-g65-bsp/infrastructure/cache"
@@ -20,6 +21,7 @@ import (
 
 func main() {
 	// Initialize configuration
+	infrastructure.InitLogger()
 	config.LoadConfig()
 	dbName := config.AppConfig.DbName
 	accessSecret := config.AppConfig.AccessTokenSecret
@@ -61,10 +63,8 @@ func main() {
 	userUsecase := usecase.NewUserUsecase(userRepo, imageUpload)
 	userController := controller.NewUserController(userUsecase)
 
-
 	// Initialize Cache
 	cacheService := cache.NewInMemoryCache(5*time.Minute, 10*time.Minute)
-	
 
 	aiservice := ai.NewGeminiService()
 	aiusecase := usecase.NewAIUsecaseImpl(aiservice)

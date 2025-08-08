@@ -40,10 +40,6 @@ type UserID struct {
 	ID primitive.ObjectID `bson:"user_id"`
 }
 
-type expiredAt struct {
-	expiredAt string `bson:"expired_at"`
-}
-
 type TokenRepository struct {
 	collection *mongo.Collection
 }
