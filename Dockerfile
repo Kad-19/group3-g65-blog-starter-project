@@ -1,49 +1,44 @@
-# --- STAGE 1: Build the application binary ---
-# Use the official Go image as a builder.
-# 'alpine' is a lightweight version of Linux, which keeps the build stage small.
+# --- STAGE 1: Build ---
+# Use the official Go image. 'alpine' is a lightweight Linux distribution.
 FROM golang:1.24.4-alpine AS builder
 
-# Set the working directory inside the container for the build
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the Go module files. This is a key optimization.
-# Docker caches this layer. Dependencies are only re-downloaded if go.mod or go.sum changes.
+# Copy the Go module files. This is cached by Docker and will only
+# re-run if go.mod or go.sum changes, speeding up future builds.
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the entire source code into the container
+# Copy the entire source code into the container.
+# We need all packages (delivery, repository, etc.) to build the app.
 COPY . .
 
 # Build the Go application.
-# -o /app/main specifies the output path and name for our compiled binary.
-# The build command targets your specific entry point: cmd/api/main.go.
-# CGO_ENABLED=0 creates a statically linked binary, which is highly portable.
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main ./cmd/api/main.go
+# CGO_ENABLED=0 creates a statically-linked binary.
+# The final argument './cmd/api' tells the compiler where your main package is.
+# The output will be a single file named 'server' in the root directory.
+RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/api
 
+# --- STAGE 2: Final/Runtime ---
+# Use a minimal, secure base image. Alpine is very small.
+FROM alpine:latest
 
-# --- STAGE 2: Create the final, lightweight runtime image ---
-# Use a minimal, secure base image. 'alpine' is small and has a package manager.
-# 'scratch' is even smaller but has nothing, not even CA certificates for HTTPS calls.
-# Alpine is a safer starting point.
-FROM alpine:3.20
-
-WORKDIR /app
-
-# We need root certificates for making external HTTPS requests (e.g., to AI services, email servers).
+# Alpine doesn't have root CA certificates by default, which are needed
+# to make HTTPS calls to external services (like AI APIs, email servers, etc.).
 RUN apk --no-cache add ca-certificates
 
+# Set the working directory
+WORKDIR /root/
+
 # Copy ONLY the compiled binary from the 'builder' stage.
-# This is the magic of multi-stage builds! Our final image is tiny and secure
-# because it doesn't contain the source code or Go compiler.
-COPY --from=builder /app/main .
+# This is the magic of multi-stage builds. The final image will be tiny
+# and won't contain any source code or build tools.
+COPY --from=builder /server .
 
-# Copy your .env file which contains all the configuration.
-# This ensures your app can find its configuration when it starts.
-COPY .env .
-
-# Expose the port that your Go application listens on.
+# Expose port 8080 to the outside world. This is what your app listens on.
 EXPOSE 8080
 
-# This is the command that will be run when the container starts.
-# It simply executes your compiled application binary.
-CMD ["./main"]
+# This is the command that will run when the container starts.
+# It simply executes your compiled application.
+CMD ["./server"]
