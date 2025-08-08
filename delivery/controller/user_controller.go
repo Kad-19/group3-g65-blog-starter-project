@@ -4,17 +4,13 @@ import (
 	"context"
 	"g3-g65-bsp/domain"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserController struct {
 	userUsecase domain.UserUsecase
-}
-
-type emailRequest struct {
-	Email string `json:"email" binding:"required,email"`
 }
 
 func NewUserController(uuc domain.UserUsecase) *UserController {
@@ -23,8 +19,27 @@ func NewUserController(uuc domain.UserUsecase) *UserController {
 	}
 }
 
+type PaginationDTO struct {
+	Total int64 `json:"total"`
+	Page  int   `json:"page"`
+	Limit int   `json:"limit"`
+}
+
+type AllusersResponse struct {
+	Allusers       []UserDTO
+	PaginationData PaginationDTO
+}
+
+func ConvertDTOSlicetoDomian(users []domain.User) []UserDTO {
+	domainUsers := make([]UserDTO, len(users))
+	for i, user := range users {
+		domainUsers[i] = *ConvertToUserDTO(&user)
+	}
+	return domainUsers
+}
+
 func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string) error, successMessage string) {
-	var req emailRequest
+	var req EmailReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -53,15 +68,9 @@ func (uc *UserController) HandleUpdateUser(c *gin.Context) {
 		return
 	}
 
-	userIDStr, ok := userIDVal.(string)
+	userID, ok := userIDVal.(string)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
-		return
-	}
-
-	userID, err := primitive.ObjectIDFromHex(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ObjectID"})
 		return
 	}
 
@@ -88,4 +97,37 @@ func (uc *UserController) HandleUpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
+}
+
+func (uc *UserController) HandleGetAllUsers(c *gin.Context) {
+	var defaultPage = 1
+	var defaultLimit = 10
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", strconv.Itoa(defaultPage)))
+	if err != nil || page < 1 {
+		page = defaultPage
+	}
+
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
+	if err != nil || limit < 1 {
+		limit = defaultLimit
+	}
+
+	allusers, total, err := uc.userUsecase.GetAllUsers(c.Request.Context(), page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	all := ConvertDTOSlicetoDomian(allusers)
+	pagination := PaginationDTO{
+		Total: total,
+		Page:  page,
+		Limit: limit,
+	}
+	res := AllusersResponse{
+		Allusers:       all,
+		PaginationData: pagination,
+	}
+	c.JSON(http.StatusOK, gin.H{"data": res})
 }

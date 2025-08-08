@@ -9,8 +9,6 @@ import (
 	"g3-g65-bsp/infrastructure/email"
 	"g3-g65-bsp/utils"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AuthUsecase struct {
@@ -61,7 +59,6 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
-
 	user := &domain.UnactivatedUser{
 		Username:              username,
 		Email:                 email,
@@ -77,14 +74,14 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
-	activationLink := "http://localhost:8080/activate?token=" + user.ActivationToken + "&email=" + user.Email
+	activationLink := "http://localhost:8080/auth/activate?token=" + user.ActivationToken + "&email=" + user.Email
 	go func() {
 		err := uc.emailService.SendActivationEmail(user.Email, activationLink)
 		if err != nil {
 			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
-	
+
 	return nil
 }
 
@@ -102,7 +99,7 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (strin
 		return "", "", 0, nil, errors.New("invalid credentials")
 	}
 
-	accessToken, err := uc.jwt.GenerateAccessToken(user.ID.Hex(), user.Role)
+	accessToken, err := uc.jwt.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		return "", "", 0, nil, errors.New("failed to generate token")
 	}
@@ -112,7 +109,15 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (strin
 		return "", "", 0, nil, errors.New("failed to generate refresh token")
 	}
 
-	if err := uc.tokenRepo.StoreRefreshToken(ctx, user.ID, refreshToken, time.Now().Add(uc.jwt.RefreshExpiry)); err != nil {
+	// Store the refresh token
+	expiry := time.Now().Add(uc.jwt.RefreshExpiry)
+	newRefreshTokenModel := &domain.RefreshToken{
+		UserID:    user.ID,
+		Token:     refreshToken,
+		ExpiresAt: expiry,
+	}
+
+	if err := uc.tokenRepo.StoreRefreshToken(ctx, newRefreshTokenModel); err != nil {
 		return "", "", 0, nil, errors.New("failed to store refresh token")
 	}
 
@@ -159,6 +164,12 @@ func (uc *AuthUsecase) ResendActivationEmail(ctx context.Context, email string) 
 		return errors.New("user not found")
 	}
 
+	// Enforce a minimum time gap (e.g., 60 seconds) between resend requests
+	minGap := 60 * time.Second
+	if time.Since(unActiveUser.UpdatedAt) < minGap {
+		return errors.New("please wait before requesting another activation email")
+	}
+
 	if unActiveUser.ActivationTokenExpiry.Before(time.Now()) {
 		return errors.New("activation token has expired")
 	}
@@ -185,17 +196,14 @@ func (uc *AuthUsecase) ForgotPassword(ctx context.Context, email string) error {
 		return err
 	}
 
-	// resetLink := "http://your-frontend-domain.com/reset-password?token=" + tokenValue
-	resetLink := ""
 	go func() {
-		err := uc.emailService.SendPasswordResetEmail(user.Email, resetLink)
+		err := uc.emailService.SendPasswordResetEmail(user.Email, password_token.Token)
 		if err != nil {
-			// Log the error.
-			// fmt.Printf("Failed to send password reset email: %v\n", err)
+			fmt.Printf("Failed to send activation email: %v\n", err)
 		}
 	}()
 
-	return errors.New("if an account exists for this email, a password reset link will be sent")
+	return nil
 }
 
 func (uc *AuthUsecase) ResetPassword(c context.Context, token, newPassword string) error {
@@ -226,46 +234,39 @@ func (uc *AuthUsecase) ResetPassword(c context.Context, token, newPassword strin
 	uc.passRepo.Delete(c, token)
 	return nil
 }
+
 func (uc *AuthUsecase) RefreshTokens(ctx context.Context, refreshToken string) (string, string, int, error) {
 	// 1. Validate and delete the old refresh token
-	userID, err := uc.tokenRepo.FindAndDeleteRefreshToken(ctx, refreshToken)
+	refreshTokenModel, err := uc.tokenRepo.FindRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return "", "", 0, errors.New("invalid refresh token")
 	}
 
+	if refreshTokenModel.ExpiresAt.Before(time.Now()) {
+		return "", "", 0, errors.New("refresh token has expired")
+	}
+
 	// 2. Get user details
-	user, err := uc.userRepo.FindByID(ctx, userID)
+	user, err := uc.userRepo.FindByID(ctx, refreshTokenModel.UserID)
 	if err != nil {
 		return "", "", 0, errors.New("user not found")
 	}
 
-	// 3. Generate new tokens
-	newAccessToken, err := uc.jwt.GenerateAccessToken(user.ID.Hex(), user.Role)
+	accessTokenNew, err := uc.jwt.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		return "", "", 0, errors.New("failed to generate access token")
 	}
 
-	newRefreshToken, err := uc.jwt.GenerateRefreshToken()
-	if err != nil {
-		return "", "", 0, errors.New("failed to generate refresh token")
-	}
-
-	// 4. Store new refresh token
-	expiry := time.Now().Add(uc.jwt.RefreshExpiry)
-	if err := uc.tokenRepo.StoreRefreshToken(ctx, user.ID, newRefreshToken, expiry); err != nil {
-		return "", "", 0, errors.New("failed to store refresh token")
-	}
-
-	return newAccessToken, newRefreshToken, int(uc.jwt.AccessExpiry.Seconds()), nil
+	return refreshToken, accessTokenNew, int(uc.jwt.AccessExpiry.Seconds()), nil
 }
 
 // Logout (single device)
 func (uc *AuthUsecase) Logout(ctx context.Context, refreshToken string) error {
-	_, err := uc.tokenRepo.FindAndDeleteRefreshToken(ctx, refreshToken)
+	err := uc.tokenRepo.DeleteRefreshToken(ctx, refreshToken)
 	return err
 }
 
 // LogoutAll (all devices)
-func (uc *AuthUsecase) LogoutAll(ctx context.Context, userID primitive.ObjectID) error {
+func (uc *AuthUsecase) LogoutAll(ctx context.Context, userID string) error {
 	return uc.tokenRepo.DeleteAllForUser(ctx, userID)
 }

@@ -7,9 +7,53 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// UnactivatedUserDTO represents a user who has not yet activated their account
+type UnactivatedUserDTO struct {
+	ID                    primitive.ObjectID `bson:"_id,omitempty"`
+	Username              string             `bson:"username"`
+	Email                 string             `bson:"email"`
+	Password              string             `bson:"password"`
+	Activated			  bool               `bson:"activated"`
+	ActivationToken       string             `bson:"activation_token,omitempty"`
+	ActivationTokenExpiry *time.Time         `bson:"activation_token_expiry,omitempty"`
+	CreatedAt             time.Time          `bson:"created_at"`
+	UpdatedAt             time.Time          `bson:"updated_at"`
+}
+
+// ConvertToDomain converts UnactivatedUserDTO to domain.UnactivatedUser
+func (dto *UnactivatedUserDTO) ConvertToUnactivatedUserDomain() *domain.UnactivatedUser {
+	return &domain.UnactivatedUser{
+		ID:                    dto.ID.Hex(),
+		Username:              dto.Username,
+		Email:                 dto.Email,
+		Password:              dto.Password,
+		Activated:             dto.Activated,
+		ActivationToken:       dto.ActivationToken,
+		ActivationTokenExpiry: dto.ActivationTokenExpiry,
+		CreatedAt:             dto.CreatedAt,
+		UpdatedAt:             dto.UpdatedAt,
+	}
+}
+
+// ConvertToDTO converts domain.UnactivatedUser to UnactivatedUserDTO
+func ConvertToUnactivatedUserDTO(u *domain.UnactivatedUser) *UnactivatedUserDTO {
+	userID, _ := primitive.ObjectIDFromHex(u.ID)
+	return &UnactivatedUserDTO{
+		ID:                    userID,
+		Username:              u.Username,
+		Email:                 u.Email,
+		Password:              u.Password,
+		Activated:             u.Activated,
+		ActivationToken:       u.ActivationToken,
+		ActivationTokenExpiry: u.ActivationTokenExpiry,
+		CreatedAt:             u.CreatedAt,
+		UpdatedAt:             u.UpdatedAt,
+	}
+}
 
 type UnactiveUserRepo struct {
 	collection *mongo.Collection
@@ -22,12 +66,12 @@ func NewUnactiveUserRepo(db *mongo.Database) domain.UnactiveUserRepo {
 }
 
 func (at *UnactiveUserRepo) CreateUnactiveUser(ctx context.Context, user *domain.UnactivatedUser) error {
-	_, err := at.collection.InsertOne(ctx, user)
+	_, err := at.collection.InsertOne(ctx, ConvertToUnactivatedUserDTO(user))
 	return err
 }
 
 func (at *UnactiveUserRepo) FindByEmailUnactive(ctx context.Context, email string) (*domain.UnactivatedUser, error) {
-	var user domain.UnactivatedUser
+	var user UnactivatedUserDTO
 	filter := bson.M{"email": email}
 	err := at.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
@@ -36,7 +80,7 @@ func (at *UnactiveUserRepo) FindByEmailUnactive(ctx context.Context, email strin
 		}
 		return nil, err
 	}
-	return &user, nil
+	return user.ConvertToUnactivatedUserDomain(), nil
 }
 
 func (at *UnactiveUserRepo) DeleteUnactiveUser(ctx context.Context, email string) error {

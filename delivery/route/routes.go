@@ -44,16 +44,25 @@ func AuthRouter(r *gin.Engine, authController *controller.AuthController, jwt *a
     {
         authGroup.POST("/register", authController.Register)
         authGroup.POST("/login", authController.Login)
-        authGroup.POST("/activate", authController.ActivateUser)
+        authGroup.GET("/activate", authController.ActivateUser)
         authGroup.POST("/resend-activation", authController.ResendActivationEmail)
         authGroup.POST("/forgot-password", authController.ForgotPassword)
         authGroup.POST("/reset-password", authController.ResetPassword)
+        authGroup.POST("/refresh_token", authController.RefreshAccessToken)
+        
         authGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
         {
-            authGroup.POST("/refresh", authController.Refresh)
             authGroup.POST("/logout", authController.Logout)      // Single device
             authGroup.POST("/logout-all", authController.LogoutAll) // All devices
         }
+    }
+}
+
+func OAuthRouter(r *gin.Engine, oauthController *controller.OAuthController) {
+    oauthGroup := r.Group("/auth/google")
+    {
+        oauthGroup.GET("/login", oauthController.HandleGoogleLogin)
+        oauthGroup.GET("/callback", oauthController.HandleGoogleCallback)
     }
 }
 
@@ -65,6 +74,18 @@ func UserRouter(r *gin.Engine, userController *controller.UserController, jwt *a
             userGroup.POST("/update-profile", userController.HandleUpdateUser)
             userGroup.POST("/promote", middleware.RoleMiddleware(), userController.HandlePromote)
             userGroup.POST("/demote", middleware.RoleMiddleware(), userController.HandleDemote)
+			userGroup.GET("/allusers", userController.HandleGetAllUsers)
+		}
+	}
+}
+
+func AIRouter(r *gin.Engine, aicontroller *controller.AIcontroller, jwt *auth.JWT) {
+	aigroup := r.Group("/ai")
+	{
+		aigroup.Use(middleware.AuthMiddleware(jwt))
+		{
+			aigroup.POST("/content", aicontroller.HandleAIContentrequest)
+			aigroup.POST("/enhance", aicontroller.HandleAIEnhancement)
         }
     }
 }
@@ -76,13 +97,21 @@ func HealthRouter(r *gin.Engine) {
     })
 }
 
+// HealthRouter registers a health check endpoint
+func HealthRouter(r *gin.Engine) {
+    r.GET("/health", func(ctx *gin.Context) {
+        ctx.JSON(200, gin.H{"status": "ok"})
+    })
+}
+
 // NewRouter initializes the Gin engine and registers all routes
 func NewRouter() *gin.Engine {
-    r := gin.Default()
+	r := gin.Default()
+	r.LoadHTMLGlob("utils/*.html")
     lmt := tollbooth.NewLimiter(1, &limiter.ExpirableOptions{
 		DefaultExpirationTTL: time.Hour, // How long each rate limiter for a given key lives.
 	})
     r.Use(tollbooth_gin.LimitHandler(lmt)) // Apply rate limiting middleware
     HealthRouter(r) // Register health check endpoint
-    return r
+	return r
 }

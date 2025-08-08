@@ -21,6 +21,7 @@ func (aus *AIUsecaseImpl) GenerateIntialSuggestion(ctx context.Context, title st
 	promptBuilder.WriteString("Generate an engaging and informative piece of content based on the following title: ")
 	promptBuilder.WriteString(title)
 	promptBuilder.WriteString(". The content should be original, clear, and relevant to the topic.\n\n")
+	promptBuilder.WriteString("The output must strictly contain the blog and nothing else.\n\n")
 
 	res, err := aus.aiclient.GenerateContent(ctx, promptBuilder.String())
 	if err != nil {
@@ -35,6 +36,7 @@ func (aus *AIUsecaseImpl) GenerateBasedOnTags(ctx context.Context, content strin
 	promptBuilder.WriteString(strings.Join(tags, ", "))
 	promptBuilder.WriteString("\n\nOriginal Content:\n")
 	promptBuilder.WriteString(content)
+	promptBuilder.WriteString("The output must strictly contain the blog and nothing else.\n\n")
 
 	res, err := aus.aiclient.GenerateContent(ctx, promptBuilder.String())
 	if err != nil {
