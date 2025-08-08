@@ -53,9 +53,17 @@ func (u *blogUsecase) GetBlogByID(ctx context.Context, id string) (*domain.Blog,
     }
     // Atomically increment the view count in the database
     if blog != nil {
-        _ = u.repo.IncrementBlogViewCount(ctx, id, blog)
-
+        // Launch a goroutine to handle the database update concurrently.
         blog.Metrics.ViewCount += 1 // reflect increment in returned object
+        
+		go func() {
+			// Create a new context for the goroutine to ensure it has its own lifecycle.
+			// This is important for managing timeouts and cancellations independently
+			// of the original request context.
+			bgCtx := context.Background()
+			_ = u.repo.IncrementBlogViewCount(bgCtx, id, blog)
+		}()
+
     }
     return blog, nil
 }
