@@ -235,43 +235,34 @@ func (uc *AuthUsecase) ResetPassword(c context.Context, token, newPassword strin
 	return nil
 }
 
-func (uc *AuthUsecase) RefreshTokens(ctx context.Context, refreshToken string) (string, int, error) {
+func (uc *AuthUsecase) RefreshTokens(ctx context.Context, refreshToken string) (string, string, int, error) {
 	// 1. Validate and delete the old refresh token
-	userID, err := uc.tokenRepo.FindAndDeleteRefreshToken(ctx, refreshToken)
+	refreshTokenModel, err := uc.tokenRepo.FindRefreshToken(ctx, refreshToken)
 	if err != nil {
-		return "", 0, errors.New("invalid refresh token")
+		return "", "", 0, errors.New("invalid refresh token")
+	}
+
+	if refreshTokenModel.ExpiresAt.Before(time.Now()) {
+		return "", "", 0, errors.New("refresh token has expired")
 	}
 
 	// 2. Get user details
-	user, err := uc.userRepo.FindByID(ctx, userID)
+	user, err := uc.userRepo.FindByID(ctx, refreshTokenModel.UserID)
 	if err != nil {
-		return "", 0, errors.New("user not found")
+		return "", "", 0, errors.New("user not found")
 	}
 
-	newRefreshToken, err := uc.jwt.GenerateRefreshToken()
+	accessTokenNew, err := uc.jwt.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
-		return "", 0, errors.New("failed to generate refresh token")
+		return "", "", 0, errors.New("failed to generate access token")
 	}
 
-	// 3. Store new refresh token
-	expiry := time.Now().Add(uc.jwt.RefreshExpiry)
-
-	newRefreshTokenModel := &domain.RefreshToken{
-		UserID:    user.ID,
-		Token:     newRefreshToken,
-		ExpiresAt: expiry,
-	}
-
-	if err := uc.tokenRepo.StoreRefreshToken(ctx, newRefreshTokenModel); err != nil {
-		return "", 0, errors.New("failed to store refresh token")
-	}
-
-	return newRefreshToken, int(uc.jwt.AccessExpiry.Seconds()), nil
+	return refreshToken, accessTokenNew, int(uc.jwt.AccessExpiry.Seconds()), nil
 }
 
 // Logout (single device)
 func (uc *AuthUsecase) Logout(ctx context.Context, refreshToken string) error {
-	_, err := uc.tokenRepo.FindAndDeleteRefreshToken(ctx, refreshToken)
+	err := uc.tokenRepo.DeleteRefreshToken(ctx, refreshToken)
 	return err
 }
 

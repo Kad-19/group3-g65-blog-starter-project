@@ -25,7 +25,7 @@ type UserUsecase interface {
 type AuthUsecase interface {
 	Register(ctx context.Context, email, username, password string) error
 	Login(ctx context.Context, email, password string) (string, string, int, *User, error)
-	RefreshTokens(ctx context.Context, refreshToken string) (string, int, error)
+	RefreshTokens(ctx context.Context, refreshToken string) (string, string, int, error)
 	Logout(ctx context.Context, refreshToken string) error
 	LogoutAll(ctx context.Context, userID string) error
 	ActivateUser(ctx context.Context, token, email string) error

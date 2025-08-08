@@ -40,6 +40,10 @@ type UserID struct {
 	ID primitive.ObjectID `bson:"user_id"`
 }
 
+type expiredAt struct {
+	expiredAt string `bson:"expired_at"`
+}
+
 type TokenRepository struct {
 	collection *mongo.Collection
 }
@@ -56,11 +60,15 @@ func (r *TokenRepository) StoreRefreshToken(ctx context.Context, refreshToken *d
 }
 
 // For single device logout
-func (r *TokenRepository) FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (string, error) {
-	var result UserID
+func (r *TokenRepository) FindRefreshToken(ctx context.Context, token string) (*domain.RefreshToken, error) {
+	var result RefreshTokenDTO
+	err := r.collection.FindOne(ctx, bson.M{"token": token}).Decode(&result)
+	return result.ConvertToDomain(), err
+}
 
-	err := r.collection.FindOneAndDelete(ctx, bson.M{"token_hash": tokenHash}).Decode(&result)
-	return result.ID.Hex(), err
+func (r *TokenRepository) DeleteRefreshToken(ctx context.Context, token string) error {
+	_, err := r.collection.DeleteOne(ctx, bson.M{"token": token})
+	return err
 }
 
 // For multiple device logout

@@ -39,7 +39,8 @@ type PasswordResetRepository interface {
 
 type TokenRepository interface {
 	StoreRefreshToken(ctx context.Context, accessToken *RefreshToken) error
-	FindAndDeleteRefreshToken(ctx context.Context, tokenHash string) (string, error)
+	FindRefreshToken(ctx context.Context, token string) (*RefreshToken, error)
+	DeleteRefreshToken(ctx context.Context, token string) (error)
 	DeleteAllForUser(ctx context.Context, userID string) error
 }
 

@@ -10,15 +10,15 @@ import (
 
 // UserDTO represents the user data transfer object
 type UserDTO struct {
-	ID           string 			`json:"id"`
-	Username     string             `json:"username" validate:"required,min=3,max=50"`
-	Email        string             `json:"email" validate:"required,email"`
-	Password 	 string             `json:"-"`
-	Role         string             `json:"role"`
-	Activated    bool               `json:"activated"`
-	Profile      UserProfileDTO      `json:"profile"`
-	CreatedAt    time.Time          `json:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at"`
+	ID        string         `json:"id"`
+	Username  string         `json:"username" validate:"required,min=3,max=50"`
+	Email     string         `json:"email" validate:"required,email"`
+	Password  string         `json:"-"`
+	Role      string         `json:"role"`
+	Activated bool           `json:"activated"`
+	Profile   UserProfileDTO `json:"profile"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 // UserProfileDTO represents the user profile data transfer object
@@ -30,15 +30,15 @@ type UserProfileDTO struct {
 
 // UnactivatedUserDTO represents a user who has not yet activated their account
 type UnactivatedUserDTO struct {
-	ID                    string 			`bson:"_id,omitempty" json:"id"`
-	Username              string             `bson:"username" json:"username" validate:"required,min=3,max=50"`
-	Email                 string             `bson:"email" json:"email" validate:"required,email"`
-	Password              string             `bson:"password" json:"-"`
-	Activated			  bool               `bson:"activated" json:"activated"`
-	ActivationToken       string             `bson:"activation_token,omitempty" json:"activation_token,omitempty"`
-	ActivationTokenExpiry *time.Time         `bson:"activation_token_expiry,omitempty" json:"activation_token_expiry,omitempty"`
-	CreatedAt             time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt             time.Time          `bson:"updated_at" json:"updated_at"`
+	ID                    string     `bson:"_id,omitempty" json:"id"`
+	Username              string     `bson:"username" json:"username" validate:"required,min=3,max=50"`
+	Email                 string     `bson:"email" json:"email" validate:"required,email"`
+	Password              string     `bson:"password" json:"-"`
+	Activated             bool       `bson:"activated" json:"activated"`
+	ActivationToken       string     `bson:"activation_token,omitempty" json:"activation_token,omitempty"`
+	ActivationTokenExpiry *time.Time `bson:"activation_token_expiry,omitempty" json:"activation_token_expiry,omitempty"`
+	CreatedAt             time.Time  `bson:"created_at" json:"created_at"`
+	UpdatedAt             time.Time  `bson:"updated_at" json:"updated_at"`
 }
 
 // ConvertToDomain converts UserDTO to domain.User
@@ -126,8 +126,8 @@ type EmailReq struct {
 }
 
 type RefreshTokenRequest struct {
-		RefreshToken string `json:"refresh_token" binding:"required"`
-	}
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
 
 type PasswordResetRequest struct {
 	Token       string `json:"token" binding:"required"`
@@ -256,21 +256,27 @@ func (ac *AuthController) ResetPassword(c *gin.Context) {
 
 // Refresh Tokens
 func (c *AuthController) RefreshAccessToken(ctx *gin.Context) {
+	// Accept refresh token from either header or JSON body
 	var req RefreshTokenRequest
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	refreshToken := ctx.GetHeader("X-Refresh-Token")
+	if refreshToken == "" {
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "refresh token is required"})
+			return
+		}
+		refreshToken = req.RefreshToken
 	}
 
-	refreshToken, expiresIn, err := c.authUsecase.RefreshTokens(ctx.Request.Context(), req.RefreshToken)
+	accessToken, refreshTokenNew, expiresIn, err := c.authUsecase.RefreshTokens(ctx.Request.Context(), refreshToken)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"refresh_token": refreshToken,
+		"access_token":  accessToken,
+		"refresh_token": refreshTokenNew,
 		"expires_in":    expiresIn,
 	})
 }
