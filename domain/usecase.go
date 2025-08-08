@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+
 	"golang.org/x/oauth2"
 )
 
@@ -18,8 +19,8 @@ type BlogUsecase interface {
 type UserUsecase interface {
 	Promote(ctx context.Context, email string) error
 	Demote(ctx context.Context, email string) error
-	ProfileUpdate(ctx context.Context, userid primitive.ObjectID, bio string, contactinfo string, file io.Reader) error
-	GetAllUsers(ctx context.Context, page int, limit int) ([]User, Pagination, error)
+	ProfileUpdate(ctx context.Context, userid string, bio string, contactinfo string, file io.Reader) error
+	GetAllUsers(ctx context.Context, page int, limit int) ([]User, int64, error)
 }
 
 type AuthUsecase interface {

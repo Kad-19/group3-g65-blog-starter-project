@@ -13,19 +13,29 @@ type UserController struct {
 	userUsecase domain.UserUsecase
 }
 
-type emailRequest struct {
-	Email string `json:"email" binding:"required,email"`
-}
-
-type AllusersResponse struct {
-	Allusers       []domain.User     `json:"users"`
-	PaginationData domain.Pagination `json:"pagination"`
-}
-
 func NewUserController(uuc domain.UserUsecase) *UserController {
 	return &UserController{
 		userUsecase: uuc,
 	}
+}
+
+type PaginationDTO struct {
+	Total int64 `json:"total"`
+	Page  int   `json:"page"`
+	Limit int   `json:"limit"`
+}
+
+type AllusersResponse struct {
+	Allusers       []UserDTO
+	PaginationData PaginationDTO
+}
+
+func ConvertDTOSlicetoDomian(users []domain.User) []UserDTO {
+	domainUsers := make([]UserDTO, len(users))
+	for i, user := range users {
+		domainUsers[i] = *ConvertToUserDTO(&user)
+	}
+	return domainUsers
 }
 
 func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string) error, successMessage string) {
@@ -103,14 +113,20 @@ func (uc *UserController) HandleGetAllUsers(c *gin.Context) {
 		limit = defaultLimit
 	}
 
-	allusers, pagination, err := uc.userUsecase.GetAllUsers(c.Request.Context(), page, limit)
+	allusers, total, err := uc.userUsecase.GetAllUsers(c.Request.Context(), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	all := ConvertDTOSlicetoDomian(allusers)
+	pagination := PaginationDTO{
+		Total: total,
+		Page:  page,
+		Limit: limit,
+	}
 	res := AllusersResponse{
-		Allusers:       allusers,
+		Allusers:       all,
 		PaginationData: pagination,
 	}
 	c.JSON(http.StatusOK, gin.H{"data": res})

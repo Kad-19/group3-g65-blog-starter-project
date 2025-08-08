@@ -14,15 +14,15 @@ import (
 
 // UserDTO represents the user data transfer object
 type UserDTO struct {
-	ID           primitive.ObjectID		`bson:"_id,omitempty"`
-	Username     string             	`bson:"username"`
-	Email        string             	`bson:"email"`
-	Password 	 string             	`bson:"password"`
-	Role         string             	`bson:"role"`
-	Activated    bool               	`bson:"activated"`
-	Profile      UserProfileDTO      	`bson:"profile"`
-	CreatedAt    time.Time          	`bson:"created_at"`
-	UpdatedAt    time.Time          	`bson:"updated_at"`
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	Username  string             `bson:"username"`
+	Email     string             `bson:"email"`
+	Password  string             `bson:"password"`
+	Role      string             `bson:"role"`
+	Activated bool               `bson:"activated"`
+	Profile   UserProfileDTO     `bson:"profile"`
+	CreatedAt time.Time          `bson:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at"`
 }
 
 // UserProfileDTO represents the user profile data transfer object
@@ -71,6 +71,14 @@ func ConvertToUserDTO(u *domain.User) *UserDTO {
 	}
 }
 
+func ConvertDTOSlicetoDomian(users []UserDTO) []domain.User {
+	domainUsers := make([]domain.User, len(users))
+	for i, dto := range users {
+		domainUsers[i] = *dto.ConvertToUserDomain()
+	}
+	return domainUsers
+}
+
 type UserRepository struct {
 	collection *mongo.Collection
 }
@@ -106,9 +114,11 @@ func (mr *UserRepository) UpdateUserProfile(ctx context.Context, bio string, con
 	filter := bson.M{"email": Email}
 	update := bson.M{
 		"$set": bson.M{
-			"bio":                 bio,
-			"profile_picture_url": imagePath,
-			"contact_information": contactInfo,
+			"profile": bson.M{
+				"bio":                 bio,
+				"profile_picture_url": imagePath,
+				"contact_information": contactInfo,
+			},
 		},
 	}
 
@@ -175,7 +185,7 @@ func (mr *UserRepository) UpdateUserPassword(ctx context.Context, email string, 
 	}
 }
 
-func (ur *UserRepository) GetAllUsers(ctx context.Context, page, limit int) ([]domain.User, domain.Pagination, error) {
+func (ur *UserRepository) GetAllUsers(ctx context.Context, page, limit int) ([]domain.User, int64, error) {
 	setskip := int64((page - 1) * limit)
 	setlimit := int64(limit)
 
@@ -183,21 +193,16 @@ func (ur *UserRepository) GetAllUsers(ctx context.Context, page, limit int) ([]d
 
 	cursor, err := ur.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
-		return nil, domain.Pagination{}, err
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
-	var users []domain.User
+	var users []UserDTO
 	if err := cursor.All(ctx, &users); err != nil {
-		return nil, domain.Pagination{}, err
+		return nil, 0, err
 	}
 
 	total, _ := ur.collection.CountDocuments(ctx, bson.M{})
-	res := domain.Pagination{
-		Total: int(total),
-		Page:  page,
-		Limit: limit,
-	}
 
-	return users, res, nil
+	return ConvertDTOSlicetoDomian(users), total, nil
 }

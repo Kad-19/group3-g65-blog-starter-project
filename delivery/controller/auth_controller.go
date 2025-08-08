@@ -5,20 +5,21 @@ import (
 	"g3-g65-bsp/infrastructure/auth"
 	"net/http"
 	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
 // UserDTO represents the user data transfer object
 type UserDTO struct {
-	ID           string 			`json:"id"`
-	Username     string             `json:"username" validate:"required,min=3,max=50"`
-	Email        string             `json:"email" validate:"required,email"`
-	Password 	 string             `json:"-"`
-	Role         string             `json:"role"`
-	Activated    bool               `json:"activated"`
-	Profile      UserProfileDTO      `json:"profile"`
-	CreatedAt    time.Time          `json:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at"`
+	ID        string         `json:"id"`
+	Username  string         `json:"username" validate:"required,min=3,max=50"`
+	Email     string         `json:"email" validate:"required,email"`
+	Password  string         `json:"-"`
+	Role      string         `json:"role"`
+	Activated bool           `json:"activated"`
+	Profile   UserProfileDTO `json:"profile"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 // UserProfileDTO represents the user profile data transfer object
@@ -30,15 +31,15 @@ type UserProfileDTO struct {
 
 // UnactivatedUserDTO represents a user who has not yet activated their account
 type UnactivatedUserDTO struct {
-	ID                    string 			`bson:"_id,omitempty" json:"id"`
-	Username              string             `bson:"username" json:"username" validate:"required,min=3,max=50"`
-	Email                 string             `bson:"email" json:"email" validate:"required,email"`
-	Password              string             `bson:"password" json:"-"`
-	Activated			  bool               `bson:"activated" json:"activated"`
-	ActivationToken       string             `bson:"activation_token,omitempty" json:"activation_token,omitempty"`
-	ActivationTokenExpiry *time.Time         `bson:"activation_token_expiry,omitempty" json:"activation_token_expiry,omitempty"`
-	CreatedAt             time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt             time.Time          `bson:"updated_at" json:"updated_at"`
+	ID                    string     `bson:"_id,omitempty" json:"id"`
+	Username              string     `bson:"username" json:"username" validate:"required,min=3,max=50"`
+	Email                 string     `bson:"email" json:"email" validate:"required,email"`
+	Password              string     `bson:"password" json:"-"`
+	Activated             bool       `bson:"activated" json:"activated"`
+	ActivationToken       string     `bson:"activation_token,omitempty" json:"activation_token,omitempty"`
+	ActivationTokenExpiry *time.Time `bson:"activation_token_expiry,omitempty" json:"activation_token_expiry,omitempty"`
+	CreatedAt             time.Time  `bson:"created_at" json:"created_at"`
+	UpdatedAt             time.Time  `bson:"updated_at" json:"updated_at"`
 }
 
 // ConvertToDomain converts UserDTO to domain.User
@@ -126,8 +127,8 @@ type EmailReq struct {
 }
 
 type RefreshTokenRequest struct {
-		RefreshToken string `json:"refresh_token" binding:"required"`
-	}
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
 
 type PasswordResetRequest struct {
 	Token       string `json:"token" binding:"required"`
