@@ -2,9 +2,11 @@ package route
 
 import (
 	"g3-g65-bsp/delivery/controller"
+	"g3-g65-bsp/infrastructure/cache"
 	"g3-g65-bsp/infrastructure/auth"
 	"g3-g65-bsp/infrastructure/middleware"
 	"time"
+
 	"github.com/didip/tollbooth/v7"
 	"github.com/didip/tollbooth/v7/limiter"
 	"github.com/didip/tollbooth_gin"
@@ -23,15 +25,17 @@ func InteractionRouter (r *gin.Engine, interactionController *controller.Interac
     }
 }
 
-func BlogRouter(r *gin.Engine, blogController *controller.BlogController, jwt *auth.JWT) {
+func BlogRouter(r *gin.Engine, blogController *controller.BlogController, jwt *auth.JWT, cacheService *cache.Service) {
+    cachingMiddleware := middleware.CachePage(*cacheService, 2*time.Minute)
+    revalidateMiddleware := middleware.RevalidateCache(*cacheService)
     blogGroup := r.Group("/blogs")
     blogGroup.Use(middleware.AuthMiddleware(jwt)) // Apply auth middleware
     {
         blogGroup.POST("/", blogController.CreateBlog)
-        blogGroup.GET("/", blogController.ListBlogs)
-        blogGroup.GET(":id", blogController.GetBlogByID)
-        blogGroup.PUT(":id", blogController.UpdateBlog)
-        blogGroup.DELETE(":id", blogController.DeleteBlog)
+        blogGroup.GET("/", cachingMiddleware, blogController.ListBlogs)
+        blogGroup.GET(":id", cachingMiddleware, blogController.GetBlogByID)
+        blogGroup.PUT(":id", revalidateMiddleware, blogController.UpdateBlog)
+        blogGroup.DELETE(":id", revalidateMiddleware, blogController.DeleteBlog)
     }
 }
 

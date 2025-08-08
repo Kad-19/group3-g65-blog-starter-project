@@ -4,12 +4,14 @@ import (
 	"g3-g65-bsp/config"
 	"g3-g65-bsp/delivery/controller"
 	"g3-g65-bsp/delivery/route"
+	"g3-g65-bsp/infrastructure/cache"
 	"g3-g65-bsp/infrastructure/auth"
 	"g3-g65-bsp/infrastructure/database"
 	"g3-g65-bsp/infrastructure/email"
+	"g3-g65-bsp/infrastructure/image"
 	"g3-g65-bsp/repository"
 	"g3-g65-bsp/usecase"
-	"g3-g65-bsp/infrastructure/image"
+	"time"
 )
 
 func main() {
@@ -53,9 +55,14 @@ func main() {
 	userController := controller.NewUserController(userUsecase)
 
 
+	// Initialize Cache
+	cacheService := cache.NewInMemoryCache(5*time.Minute, 10*time.Minute)
+	
+
+
     // Initialize router
     r := route.NewRouter()
-	route.BlogRouter(r, blogController, jwt)
+	route.BlogRouter(r, blogController, jwt, &cacheService)
 	route.InteractionRouter(r, interactionController, jwt)
 
 	// Register authentication routes
