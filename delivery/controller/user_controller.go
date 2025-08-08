@@ -38,21 +38,33 @@ func ConvertDTOSlicetoDomian(users []domain.User) []UserDTO {
 	return domainUsers
 }
 
-func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string) error, successMessage string) {
+func (uc *UserController) ChangeUserRole(c *gin.Context, roleChange func(context.Context, string, string) error, successMessage string) {
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userid, ok := userIDVal.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
 	var req EmailReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	ctx := c.Request.Context()
-	if err := roleChange(ctx, req.Email); err != nil {
+	if err := roleChange(ctx, userid, req.Email); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		if err := roleChange(ctx, req.Email); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{"message": successMessage})
 }
+
 func (uc *UserController) HandlePromote(c *gin.Context) {
 	uc.ChangeUserRole(c, uc.userUsecase.Promote, "user promoted successfully")
 }

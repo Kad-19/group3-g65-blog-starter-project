@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"fmt"
 	"g3-g65-bsp/domain"
 	"io"
 )
@@ -20,34 +19,43 @@ func NewUserUsecase(ur domain.UserRepository, iu domain.ImageUploader) domain.Us
 	}
 }
 
-func (upd *UserUsecase) Promote(ctx context.Context, Email string) error {
-	user, err := upd.userRepo.FindByEmail(ctx, Email)
+var (
+	ErrSelfRoleChange = errors.New("cannot change own role")
+	ErrAlreadyHasRole = errors.New("user already has the target role")
+)
+
+func (upd *UserUsecase) Promote(ctx context.Context, userid, Email string) error {
+	targetUser, err := upd.userRepo.FindByEmail(ctx, Email)
 	if err != nil {
 		return err
 	}
-	if user.Role == string(domain.RoleAdmin) {
-		return fmt.Errorf("the user is already an admin")
+
+	if targetUser.ID == userid {
+		return ErrSelfRoleChange
 	}
 
-	if ok := upd.userRepo.UpdateUserRole(ctx, string(domain.RoleAdmin), Email); ok != nil {
-		return ok
+	if targetUser.Role == string(domain.RoleAdmin) {
+		return ErrAlreadyHasRole
 	}
-	return nil
+
+	return upd.userRepo.UpdateUserRole(ctx, string(domain.RoleAdmin), Email)
 }
 
-func (upd *UserUsecase) Demote(ctx context.Context, Email string) error {
-	user, err := upd.userRepo.FindByEmail(ctx, Email)
+func (upd *UserUsecase) Demote(ctx context.Context, userid, Email string) error {
+	targetUser, err := upd.userRepo.FindByEmail(ctx, Email)
 	if err != nil {
 		return err
 	}
-	if user.Role == string(domain.RoleUser) {
-		return fmt.Errorf("the user is already a user")
-	}
-	if ok := upd.userRepo.UpdateUserRole(ctx, string(domain.RoleUser), Email); ok != nil {
-		return ok
+
+	if targetUser.ID == userid {
+		return ErrSelfRoleChange
 	}
 
-	return nil
+	if targetUser.Role == string(domain.RoleUser) {
+		return ErrAlreadyHasRole
+	}
+
+	return upd.userRepo.UpdateUserRole(ctx, string(domain.RoleUser), Email)
 }
 
 func (upd *UserUsecase) ProfileUpdate(ctx context.Context, userid string, bio string, contactinfo string, file io.Reader) error {
@@ -61,10 +69,7 @@ func (upd *UserUsecase) ProfileUpdate(ctx context.Context, userid string, bio st
 		return errors.New("failed to upload image")
 	}
 
-	if err := upd.userRepo.UpdateUserProfile(ctx, bio, contactinfo, imageURL, user.Email); err != nil {
-		return err
-	}
-	return nil
+	return upd.userRepo.UpdateUserProfile(ctx, bio, contactinfo, imageURL, user.Email)
 }
 
 func (upd *UserUsecase) GetAllUsers(ctx context.Context, page int, limit int) ([]domain.User, int64, error) {
