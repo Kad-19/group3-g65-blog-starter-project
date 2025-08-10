@@ -150,8 +150,16 @@ func (c *BlogController) UpdateBlog(ctx *gin.Context) {
 }
 
 func (c *BlogController) DeleteBlog(ctx *gin.Context) {
+    userid, ok := ctx.Get("user_id"); if !ok {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+        return
+    }
+    role, ok := ctx.Get("role"); if !ok {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+        return
+    }
     id := ctx.Param("id")
-    err := c.blogUsecase.DeleteBlog(ctx, id)
+    err := c.blogUsecase.DeleteBlog(ctx, id, userid.(string), role.(string))
     if err != nil {
         ctx.JSON(http.StatusNotFound, gin.H{"error": "blog not found"})
         return

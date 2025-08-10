@@ -249,8 +249,6 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
         andFilters = append(andFilters, bson.M{"$or": orFilters})
     }
 
-    // Add other specific filters to the $and array
-
     if tags, ok := filter["tags"].([]string); ok && len(tags) > 0 {
         andFilters = append(andFilters, bson.M{"tags": bson.M{"$all": tags}})
     }
@@ -270,9 +268,6 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
         andFilters = append(andFilters, bson.M{"metrics.view_count": bson.M{"$gte": minViews}})
     }
 
-    // ... add other filters similarly ...
-
-
     bsonFilter := bson.M{}
     if len(andFilters) > 0 {
         bsonFilter["$and"] = andFilters
@@ -290,6 +285,17 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
     }
     if page > 1 && limit > 0 {
         opts.SetSkip(int64((page - 1) * limit))
+    }
+
+    // Sorting logic
+    if sortBy, ok := filter["sortby"].(string); ok && sortBy != "" {
+        sortOrder := 1 // ascending by default
+        if order, ok := filter["order"].(string); ok {
+            if order == "desc" {
+                sortOrder = -1
+            }
+        }
+        opts.SetSort(bson.D{{Key: sortBy, Value: sortOrder}})
     }
 
     cur, err := r.collection.Find(ctx, bsonFilter, opts)
