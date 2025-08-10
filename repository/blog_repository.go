@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"g3-g65-bsp/domain"
-	"g3-g65-bsp/infrastructure"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,7 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
 
 // Blog model in repository package
 
@@ -167,28 +165,6 @@ func (m *BlogModel) FromDomain(blog *domain.Blog) {
 
 type mongoBlogRepository struct {
 	collection *mongo.Collection
-}
-
-// ErrBlogNotFound is returned when a blog is not found in the repository
-var ErrBlogNotFound = errors.New("blog not found")
-
-// NewBlogRepository returns a MongoDB implementation of BlogRepository
-func NewBlogRepository(collection *mongo.Collection) domain.BlogRepository {
-	indexes := []mongo.IndexModel{
-		{
-			Keys: bson.D{
-				{Key: "tags", Value: 1},
-				{Key: "created_at", Value: -1},
-				{Key: "metrics.view_count", Value: -1},
-			},
-		},
-	}
-
-	if _, err := collection.Indexes().CreateMany(context.Background(), indexes); err != nil {
-		infrastructure.Log.Fatalf("Failed to create index: %v", err)
-	}
-
-	return &mongoBlogRepository{collection: collection}
 }
 
 func (r *mongoBlogRepository) CreateBlog(ctx context.Context, blog *domain.Blog) (string, error) {
