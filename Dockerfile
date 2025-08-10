@@ -36,6 +36,9 @@ WORKDIR /root/
 # and won't contain any source code or build tools.
 COPY --from=builder /server .
 
+# Copy templates folder (adjust path as per your project)
+COPY utils ./utils
+
 # Expose port 8080 to the outside world. This is what your app listens on.
 EXPOSE 8080
 
