@@ -4,7 +4,7 @@
 
 # Ignore local environment files and configs
 .vscode
-*.env.local
+# *.env.local
 
 # Ignore test files
 tests/

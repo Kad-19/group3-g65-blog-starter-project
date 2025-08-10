@@ -5,43 +5,41 @@ FROM golang:1.24.6-alpine AS builder
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the Go module files. This is cached by Docker and will only
-# re-run if go.mod or go.sum changes, speeding up future builds.
+# Copy the Go module files.
 COPY go.mod go.sum ./
+
+# Download external dependencies.
 RUN go mod download
 
 # Copy the entire source code into the container.
-# We need all packages (delivery, repository, etc.) to build the app.
 COPY . .
 
+# ====================================================================
+# === VITAL STEP: Tidy modules to recognize all local packages ===
+RUN go mod tidy
+# ====================================================================
+
 # Build the Go application.
-# CGO_ENABLED=0 creates a statically-linked binary.
-# The final argument './cmd/api' tells the compiler where your main package is.
-# The output will be a single file named 'server' in the root directory.
 RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/api
 
 # --- STAGE 2: Final/Runtime ---
-# Use a minimal, secure base image. Alpine is very small.
+# Use a minimal, secure base image.
 FROM alpine:latest
 
-# Alpine doesn't have root CA certificates by default, which are needed
-# to make HTTPS calls to external services (like AI APIs, email servers, etc.).
+# Add certificates for HTTPS requests.
 RUN apk --no-cache add ca-certificates
 
 # Set the working directory
 WORKDIR /root/
 
 # Copy ONLY the compiled binary from the 'builder' stage.
-# This is the magic of multi-stage builds. The final image will be tiny
-# and won't contain any source code or build tools.
 COPY --from=builder /server .
 
-# Copy templates folder (adjust path as per your project)
+# Copy templates folder
 COPY utils ./utils
 
-# Expose port 8080 to the outside world. This is what your app listens on.
+# Expose port 8080
 EXPOSE 8080
 
 # This is the command that will run when the container starts.
-# It simply executes your compiled application.
 CMD ["./server"]
