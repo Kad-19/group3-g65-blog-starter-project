@@ -88,12 +88,30 @@ func (u *blogUsecase) UpdateBlog(ctx context.Context, blog *domain.Blog, userid,
     return existingBlog, nil
 }
 
-func (u *blogUsecase) DeleteBlog(ctx context.Context, id string) error {
+func (u *blogUsecase) DeleteBlog(ctx context.Context, id, userid, role string) error {
+    // Ensure the blog belongs to the user or the user is an admin
+    existingBlog, err := u.repo.GetBlogByID(ctx, id)
+    if err != nil {
+        return err
+    }
+    if existingBlog.AuthorID != userid && role != "admin" {
+        return domain.ErrUnauthorized
+    }
     return u.repo.DeleteBlog(ctx, id)
 }
 
 // ListBlogs allows filtering by tags ([]string), date (created_at_from, created_at_to), or popularity (min_views)
 func (u *blogUsecase) ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*domain.Blog, *domain.Pagination, error) {
+    sortBy, ok := filter["sortBy"].(string)
+    switch {
+    case ok && (sortBy == "title" || sortBy == "created_at"):
+        // valid sortBy, do nothing
+    case ok && sortBy == "view_count":
+        filter["sortBy"] = "metrics.view_count"
+    default:
+        filter["sortBy"] = "created_at"
+        filter["order"] = "desc"
+    }
     return u.repo.ListBlogs(ctx, filter, page, limit)
 }
 

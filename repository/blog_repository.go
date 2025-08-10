@@ -239,15 +239,13 @@ func (r *mongoBlogRepository) DeleteBlog(ctx context.Context, id string) error {
 func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*domain.Blog, *domain.Pagination, error) {
 	var andFilters []bson.M
 
-	if search, ok := filter["search"].(string); ok && search != "" {
-		orFilters := []bson.M{
-			{"title": bson.M{"$regex": search, "$options": "i"}},
-			{"author_username": bson.M{"$regex": search, "$options": "i"}},
-		}
-		andFilters = append(andFilters, bson.M{"$or": orFilters})
-	}
-
-	// Add other specific filters to the $and array
+    if search, ok := filter["search"].(string); ok && search != "" {
+        orFilters := []bson.M{
+            {"title": bson.M{"$regex": search, "$options": "i"}},
+            {"author_username": bson.M{"$regex": search, "$options": "i"}},
+        }
+        andFilters = append(andFilters, bson.M{"$or": orFilters})
+    }
 
 	if tags, ok := filter["tags"].([]string); ok && len(tags) > 0 {
 		andFilters = append(andFilters, bson.M{"tags": bson.M{"$all": tags}})
@@ -259,16 +257,14 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
 		}
 	}
 
-	if to, ok := filter["created_at_to"].(string); ok && to != "" {
-		if toTime, err := time.Parse(time.RFC3339, to); err == nil {
-			andFilters = append(andFilters, bson.M{"created_at": bson.M{"$lte": toTime}})
-		}
-	}
-	if minViews, ok := filter["min_views"].(int); ok && minViews > 0 {
-		andFilters = append(andFilters, bson.M{"metrics.view_count": bson.M{"$gte": minViews}})
-	}
-
-	// ... add other filters similarly ...
+    if to, ok := filter["created_at_to"].(string); ok && to != "" {
+        if toTime, err := time.Parse(time.RFC3339, to); err == nil {
+            andFilters = append(andFilters, bson.M{"created_at": bson.M{"$lte": toTime}})
+        }
+    }
+    if minViews, ok := filter["min_views"].(int); ok && minViews > 0 {
+        andFilters = append(andFilters, bson.M{"metrics.view_count": bson.M{"$gte": minViews}})
+    }
 
 	bsonFilter := bson.M{}
 	if len(andFilters) > 0 {
@@ -281,13 +277,24 @@ func (r *mongoBlogRepository) ListBlogs(ctx context.Context, filter map[string]a
 		return nil, nil, err
 	}
 
-	opts := options.Find()
-	if limit > 0 {
-		opts.SetLimit(int64(limit))
-	}
-	if page > 1 && limit > 0 {
-		opts.SetSkip(int64((page - 1) * limit))
-	}
+    opts := options.Find()
+    if limit > 0 {
+        opts.SetLimit(int64(limit))
+    }
+    if page > 1 && limit > 0 {
+        opts.SetSkip(int64((page - 1) * limit))
+    }
+
+    // Sorting logic
+    if sortBy, ok := filter["sortby"].(string); ok && sortBy != "" {
+        sortOrder := 1 // ascending by default
+        if order, ok := filter["order"].(string); ok {
+            if order == "desc" {
+                sortOrder = -1
+            }
+        }
+        opts.SetSort(bson.D{{Key: sortBy, Value: sortOrder}})
+    }
 
 	cur, err := r.collection.Find(ctx, bsonFilter, opts)
 	if err != nil {
