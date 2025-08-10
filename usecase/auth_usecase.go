@@ -164,8 +164,8 @@ func (uc *AuthUsecase) ResendActivationEmail(ctx context.Context, email string) 
 		return errors.New("user not found")
 	}
 
-	// Enforce a minimum time gap (e.g., 60 seconds) between resend requests
-	minGap := 60 * time.Second
+	// Enforce a minimum time gap (e.g., 30 seconds) between resend requests
+	minGap := 30 * time.Second
 	if time.Since(unActiveUser.UpdatedAt) < minGap {
 		return errors.New("please wait before requesting another activation email")
 	}
@@ -174,7 +174,17 @@ func (uc *AuthUsecase) ResendActivationEmail(ctx context.Context, email string) 
 		return errors.New("activation token has expired")
 	}
 
-	activationLink := "http://localhost:8080/activate?token=" + unActiveUser.ActivationToken + "&email=" + unActiveUser.Email
+	token, expiry, err := utils.GenerateRandomToken()
+	if err != nil {
+		return err
+	}
+
+	err = uc.unactiveRepo.UpdateActiveToken(ctx, email, token, *expiry)
+	if err != nil {
+		return err
+	}
+
+	activationLink := "http://localhost:8080/auth/activate?token=" + token + "&email=" + unActiveUser.Email
 	go func() {
 		err := uc.emailService.SendActivationEmail(unActiveUser.Email, activationLink)
 		if err != nil {

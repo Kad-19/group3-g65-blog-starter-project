@@ -1,6 +1,6 @@
 # --- STAGE 1: Build ---
 # Use the official Go image. 'alpine' is a lightweight Linux distribution.
-FROM golang:1.24.4-alpine AS builder
+FROM golang:1.24.6-alpine AS builder
 
 # Set the working directory inside the container
 WORKDIR /app

@@ -95,6 +95,7 @@ func (at *UnactiveUserRepo) UpdateActiveToken(ctx context.Context, email, token 
 		"$set": bson.M{
 			"activation_token":         token,
 			"activation_token_expiry":  expiry,
+			"updated_at":               time.Now(),
 		},
 	}
 	_, err := at.collection.UpdateOne(ctx, filter, update)
