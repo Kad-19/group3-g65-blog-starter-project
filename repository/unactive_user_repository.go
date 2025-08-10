@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"g3-g65-bsp/domain"
+	"g3-g65-bsp/infrastructure"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // UnactivatedUserDTO represents a user who has not yet activated their account
@@ -17,7 +19,7 @@ type UnactivatedUserDTO struct {
 	Username              string             `bson:"username"`
 	Email                 string             `bson:"email"`
 	Password              string             `bson:"password"`
-	Activated			  bool               `bson:"activated"`
+	Activated             bool               `bson:"activated"`
 	ActivationToken       string             `bson:"activation_token,omitempty"`
 	ActivationTokenExpiry *time.Time         `bson:"activation_token_expiry,omitempty"`
 	CreatedAt             time.Time          `bson:"created_at"`
@@ -60,8 +62,19 @@ type UnactiveUserRepo struct {
 }
 
 func NewUnactiveUserRepo(db *mongo.Database) domain.UnactiveUserRepo {
+	coll := db.Collection("unactivated_users")
+
+	index := mongo.IndexModel{
+		Keys:    bson.M{"activation_token_expiry": 1},
+		Options: options.Index().SetExpireAfterSeconds(0),
+	}
+
+	if _, err := coll.Indexes().CreateOne(context.Background(), index); err != nil {
+		infrastructure.Log.Fatalf("Failed to create TTL index: %v", err)
+	}
+
 	return &UnactiveUserRepo{
-		collection: db.Collection("unactivated_users"),
+		collection: coll,
 	}
 }
 
@@ -93,8 +106,8 @@ func (at *UnactiveUserRepo) UpdateActiveToken(ctx context.Context, email, token 
 	filter := bson.M{"email": email}
 	update := bson.M{
 		"$set": bson.M{
-			"activation_token":         token,
-			"activation_token_expiry":  expiry,
+			"activation_token":        token,
+			"activation_token_expiry": expiry,
 		},
 	}
 	_, err := at.collection.UpdateOne(ctx, filter, update)
