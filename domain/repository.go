@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 )
 
 type BlogRepository interface {
@@ -32,6 +33,7 @@ type UnactiveUserRepo interface {
 	CreateUnactiveUser(ctx context.Context, user *UnactivatedUser) error
 	FindByEmailUnactive(ctx context.Context, email string) (*UnactivatedUser, error)
 	DeleteUnactiveUser(ctx context.Context, email string) error
+	UpdateActiveToken(ctx context.Context, email string, token string, expiry time.Time) error
 }
 
 type PasswordResetRepository interface {

@@ -286,12 +286,16 @@ func (c *AuthController) RefreshAccessToken(ctx *gin.Context) {
 func (c *AuthController) Logout(ctx *gin.Context) {
 	var req RefreshTokenRequest
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	refreshToken := ctx.GetHeader("X-Refresh-Token")
+	if refreshToken == "" {
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "refresh token is required"})
+			return
+		}
+		refreshToken = req.RefreshToken
 	}
 
-	if err := c.authUsecase.Logout(ctx.Request.Context(), req.RefreshToken); err != nil {
+	if err := c.authUsecase.Logout(ctx.Request.Context(), refreshToken); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
 		return
 	}

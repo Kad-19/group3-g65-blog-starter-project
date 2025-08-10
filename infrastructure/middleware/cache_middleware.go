@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"bytes"
-	"g3-g65-bsp/infrastructure/Cache"
+	"g3-g65-bsp/infrastructure/cache"
 	"net/http"
 	"time"
 
