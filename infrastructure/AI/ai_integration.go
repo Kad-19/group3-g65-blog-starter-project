@@ -33,7 +33,7 @@ func NewGeminiService() *geminiService {
 func (gs *geminiService) GenerateContent(ctx context.Context, prompt string) (string, error) {
 	resp, err := gs.client.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
-		return "", fmt.Errorf("failed to generate content from Gemini API: %w", err)
+		return "", fmt.Errorf("skldfhsjlhflksagnsdjk: %w", err)
 	}
 	if resp != nil && len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
 		textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
