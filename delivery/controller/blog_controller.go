@@ -218,6 +218,15 @@ func (c *BlogController) ListBlogs(ctx *gin.Context) {
         }
     }
 
+    // Parse sorting
+    if sort := ctx.Query("sortBy"); sort != "" {
+        filter["sortBy"] = sort
+    }
+
+    if order := ctx.Query("order"); order != "" {
+        filter["order"] = order
+    }
+
     blogs, pagination, err := c.blogUsecase.ListBlogs(ctx, filter, page, limit)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

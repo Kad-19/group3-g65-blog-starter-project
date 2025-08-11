@@ -7,8 +7,8 @@ import (
 type Role string
 
 const (
-	RoleUser  Role = "User"
-	RoleAdmin Role = "Admin"
+	RoleUser  Role = "user"
+	RoleAdmin Role = "admin"
 )
 
 // User represents the core user entity in the system
