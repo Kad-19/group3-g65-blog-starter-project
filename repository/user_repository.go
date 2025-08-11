@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"g3-g65-bsp/domain"
+	"g3-g65-bsp/infrastructure"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -85,8 +86,18 @@ type UserRepository struct {
 }
 
 func NewUserRepository(db *mongo.Database) domain.UserRepository {
+	coll := db.Collection("users")
+	index := mongo.IndexModel{
+		Keys:    bson.D{{Key: "email", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+
+	if _, err := coll.Indexes().CreateOne(context.Background(), index); err != nil {
+		infrastructure.Log.Fatalf("Failed to create index: %v", err)
+	}
+
 	return &UserRepository{
-		collection: db.Collection("users"),
+		collection: coll,
 	}
 }
 

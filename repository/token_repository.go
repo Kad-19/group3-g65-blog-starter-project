@@ -3,18 +3,20 @@ package repository
 import (
 	"context"
 	"g3-g65-bsp/domain"
+	"g3-g65-bsp/infrastructure"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // RefreshTokenDTO is a Data Transfer Object for Refresh Tokens
 type RefreshTokenDTO struct {
 	UserID    primitive.ObjectID `bson:"user_id"`
-	Token     string              `bson:"token"`
-	ExpiresAt time.Time           `bson:"expires_at"`
+	Token     string             `bson:"token"`
+	ExpiresAt time.Time          `bson:"expires_at"`
 }
 
 // ConvertToDomain converts RefreshTokenDTO to domain.RefreshToken
@@ -45,8 +47,17 @@ type TokenRepository struct {
 }
 
 func NewTokenRepository(db *mongo.Database) *TokenRepository {
+	coll := db.Collection("refresh_tokens")
+	index := mongo.IndexModel{
+		Keys:    bson.M{"activation_token_expiry": 1},
+		Options: options.Index().SetExpireAfterSeconds(0),
+	}
+
+	if _, err := coll.Indexes().CreateOne(context.Background(), index); err != nil {
+		infrastructure.Log.Fatalf("Failed to create TTL index: %v", err)
+	}
 	return &TokenRepository{
-		collection: db.Collection("refresh_tokens"),
+		collection: coll,
 	}
 }
 
@@ -69,7 +80,7 @@ func (r *TokenRepository) DeleteRefreshToken(ctx context.Context, token string) 
 
 // For multiple device logout
 func (r *TokenRepository) DeleteAllForUser(ctx context.Context, userID string) error {
-	userIDObj,_ := primitive.ObjectIDFromHex(userID)
+	userIDObj, _ := primitive.ObjectIDFromHex(userID)
 	_, err := r.collection.DeleteMany(ctx, bson.M{"user_id": userIDObj})
 	return err
 }

@@ -12,7 +12,7 @@ type BlogUsecase interface {
 	CreateBlog(ctx context.Context, blog *Blog, userid string) (*Blog, error)
 	GetBlogByID(ctx context.Context, id string) (*Blog, error)
 	UpdateBlog(ctx context.Context, blog *Blog, userid, id string) (*Blog, error)
-	DeleteBlog(ctx context.Context, id string) error
+	DeleteBlog(ctx context.Context, id, userid, role string) error
 	ListBlogs(ctx context.Context, filter map[string]any, page, limit int) ([]*Blog, *Pagination, error)
 }
 

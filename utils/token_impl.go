@@ -9,14 +9,13 @@ import (
 	"time"
 )
 
-
 func GenerateRandomToken() (string, *time.Time, error) {
 	b := make([]byte, 32) // 32 bytes = 256 bits
 	if _, err := rand.Read(b); err != nil {
 		return "", nil, errors.New("failed to generate random token")
 	}
 	token := base64.URLEncoding.EncodeToString(b)
-	expiry := time.Now().Add(30 * time.Minute)
+	expiry := time.Now().Add(24 * time.Hour)
 	return token, &expiry, nil
 }
 
