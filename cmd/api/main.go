@@ -91,7 +91,8 @@ func main() {
 	route.AIRouter(r, aicontroller, jwt, contentCreationLimiter)
 
 	// Start the server on port 8080
-	if err := r.Run("localhost:8080"); err != nil {
+	// if err := r.Run("localhost:8080"); err != nil {
+	if err := r.Run("0.0.0.0:8080"); err != nil {
 		panic("Failed to start server: " + err.Error())
 	}
 }
