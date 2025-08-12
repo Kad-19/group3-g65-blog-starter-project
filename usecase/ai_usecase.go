@@ -57,7 +57,7 @@ func (aus *AIUsecaseImpl) GenerateIntialSuggestion(ctx context.Context, title st
 		return "", fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	// infrastructure.Log.Println(eval)
+	infrastructure.Log.Println(eval)
 	if eval.Appropriate {
 		return eval.Content, nil
 	}
@@ -76,18 +76,14 @@ func (aus *AIUsecaseImpl) GenerateBasedOnTags(ctx context.Context, content strin
 	promptBuilder.WriteString("Original Content:\n")
 	promptBuilder.WriteString(content)
 
-	promptBuilder.WriteString(`
-Respond with ONLY valid JSON. 
-Do not include markdown code blocks, backticks, or any other formatting — only the JSON object.
+	promptBuilder.WriteString(` Respond strictly in the following JSON format:
+{
+  "appropriate": true/false,
+  "description": "Reason if inappropriate, otherwise empty",
+  "content": "Generated enhancement if appropriate, otherwise empty"
+}
 `)
 
-	// 	promptBuilder.WriteString(`\n\nRespond strictly in the following JSON format:
-	// {
-	//   "appropriate": true/false,
-	//   "description": "Reason if inappropriate, otherwise empty",
-	//   "content": "Enhanced content if appropriate, otherwise empty"
-	// }
-	// `)
 	res, err := aus.aiclient.GenerateContent(ctx, promptBuilder.String())
 	if err != nil {
 		return "", err
@@ -104,7 +100,7 @@ Do not include markdown code blocks, backticks, or any other formatting — only
 		return "", fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	infrastructure.Log.Println(eval)
+	infrastructure.Log.Println(eval, "enhance")
 	if eval.Appropriate {
 		return eval.Content, nil
 	}

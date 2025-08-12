@@ -48,7 +48,7 @@ func (ac *AIcontroller) HandleAIEnhancement(c *gin.Context) {
 
 	res, err := ac.aiusecase.GenerateBasedOnTags(c.Request.Context(), content.Content, content.Tags)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "failed to generate content"})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err})
 		return
 	}
 	c.IndentedJSON(http.StatusOK, gin.H{"content": res})
