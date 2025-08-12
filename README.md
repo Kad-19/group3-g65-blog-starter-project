@@ -157,6 +157,37 @@ docker build -t blog-app .
 docker run -p 8080:8080 --env-file .env blog-app
 ```
 
+## Deployment
+
+This application is deployed as a Docker container on Render using an image from Docker Hub.
+
+**Live URL:** [https://go-blog-app-1-1.onrender.com](https://go-blog-app-1-1.onrender.com)
+
+### Steps to Deploy a New Version
+
+1.  **Build the Docker Image:**
+    Build the image locally and tag it with your Docker Hub username and a new version.
+
+    ```bash
+    # Replace 'yourusername' and 'tag'
+    docker build -t yourusername/go-blog-app:tag .
+    ```
+
+2.  **Push to Docker Hub:**
+    Push the newly built image to the Docker Hub registry.
+
+    ```bash
+    # Replace 'yourusername' and 'tag'
+    docker push yourusername/go-blog-app:tag
+    ```
+
+3.  **Deploy on Render:**
+    *   Go to your service on the [Render Dashboard](https://dashboard.render.com).
+    *   Go to the **Settings** tab.
+    *   Update the **Image URL** to point to your new Docker Hub image tag (e.g., `docker.io/yourusername/go-blog-app:tag`).
+    *   Render will automatically detect the change and deploy the new version.
+    *   **Note:** Ensure all required environment variables from the `.env` file are configured in the **Environment** tab on Render.
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
