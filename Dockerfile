@@ -6,7 +6,7 @@ FROM golang:1.24.6-alpine3.20 AS builder
 WORKDIR /app
 
 # Metadata labels (for maintainability)
-LABEL maintainer="Your Name <your.email@example.com>"
+LABEL maintainer="Temesgen <guys199421@gmail.com>"
 LABEL version="1.0"
 LABEL description="Group3 G65 Blog Starter Project API"
 
