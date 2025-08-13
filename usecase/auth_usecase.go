@@ -74,7 +74,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, username, password s
 		return err
 	}
 
-	activationLink := "http://localhost:8080/auth/activate?token=" + user.ActivationToken + "&email=" + user.Email
+	activationLink := "https://go-blog-app-1-1.onrender.com/auth/activate?token=" + user.ActivationToken + "&email=" + user.Email
 	go func() {
 		err := uc.emailService.SendActivationEmail(user.Email, activationLink)
 		if err != nil {
@@ -184,7 +184,7 @@ func (uc *AuthUsecase) ResendActivationEmail(ctx context.Context, email string) 
 		return err
 	}
 
-	activationLink := "http://localhost:8080/auth/activate?token=" + token + "&email=" + unActiveUser.Email
+	activationLink := "https://go-blog-app-1-1.onrender.com/auth/activate?token=" + token + "&email=" + unActiveUser.Email
 	go func() {
 		err := uc.emailService.SendActivationEmail(unActiveUser.Email, activationLink)
 		if err != nil {
