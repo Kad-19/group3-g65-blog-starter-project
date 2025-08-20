@@ -30,11 +30,13 @@ func (ac *AIcontroller) HandleAIContentrequest(c *gin.Context) {
 	var content ContentRequest
 	if err := c.ShouldBindJSON(&content); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "incorrect request"})
+		return
 	}
 
 	res, err := ac.aiusecase.GenerateIntialSuggestion(c.Request.Context(), content.Title)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "failed to generate content"})
+		return
 	}
 	c.IndentedJSON(http.StatusOK, gin.H{"content": res})
 }

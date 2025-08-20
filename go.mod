@@ -9,6 +9,7 @@ require (
 	github.com/google/generative-ai-go v0.20.1
 	github.com/joho/godotenv v1.5.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/crypto v0.40.0
 	golang.org/x/oauth2 v0.30.0
@@ -58,6 +59,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
 	cloud.google.com/go/longrunning v0.5.7 // indirect
 	github.com/creasty/defaults v1.7.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -69,6 +71,8 @@ require (
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect

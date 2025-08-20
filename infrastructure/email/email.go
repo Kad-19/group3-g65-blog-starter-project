@@ -8,8 +8,12 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
+type Dialer interface {
+	DialAndSend(m ...*gomail.Message) error
+}
+
 type EmailService struct {
-	dialer    *gomail.Dialer
+	dialer    Dialer
 	fromEmail string
 }
 

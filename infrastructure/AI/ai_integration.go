@@ -10,8 +10,12 @@ import (
 	"google.golang.org/api/option"
 )
 
+type GenerativeModelAPI interface {
+	GenerateContent(ctx context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error)
+}
+
 type geminiService struct {
-	client *genai.GenerativeModel
+	client GenerativeModelAPI
 }
 
 func NewGeminiService() *geminiService {
@@ -33,7 +37,7 @@ func NewGeminiService() *geminiService {
 func (gs *geminiService) GenerateContent(ctx context.Context, prompt string) (string, error) {
 	resp, err := gs.client.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
-		return "", fmt.Errorf("skldfhsjlhflksagnsdjk: %w", err)
+		return "", fmt.Errorf("failed to generate content from gemini api: %w", err)
 	}
 	if resp != nil && len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
 		textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
@@ -44,4 +48,3 @@ func (gs *geminiService) GenerateContent(ctx context.Context, prompt string) (st
 
 	return "", errors.New("gemini api response was empty or malformed")
 }
-
